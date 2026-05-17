@@ -1,0 +1,3901 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>後台管理 — 臺中古蹟體驗</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* 紅磚白石黑瓦 */
+  --brick:#b8472c;--brick-dark:#6b2818;--brick-light:#d87050;
+  --stone:#f0e5d0;--stone-dim:#c8b89c;--tile-black:#1a1208;
+  --bg:#0e0604;--bg2:#1a0e08;--bg3:#241408;
+  --gold:#c25028;--gold-dim:#6b2818;
+  --text:#f0e5d0;--text-dim:#c8b89c;--border:#3a1f10;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Noto Serif TC',serif;font-size:14px;min-height:100vh;padding-bottom:64px;}
+/* Header */
+#hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;}
+#hdr h1{font-size:15px;letter-spacing:.3em;color:var(--gold);font-weight:400;}
+#sync-dot{font-size:12px;padding:4px 12px;border-radius:2px;transition:all .3s;}
+#sync-dot.ok{background:rgba(64,128,64,.25);color:#80c080;border:1px solid #408040;}
+#sync-dot.dirty{background:rgba(180,140,40,.25);color:#e0b060;border:1px solid #a08030;}
+/* Tab bar */
+#tabbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;overflow-x:auto;}
+.tbtn{padding:10px 15px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);cursor:pointer;font:12px/1 'Noto Serif TC',serif;letter-spacing:.15em;white-space:nowrap;transition:all .15s;}
+.tbtn:hover{color:var(--text);}.tbtn.on{color:var(--gold);border-bottom-color:var(--gold);}
+/* Main */
+#main{padding:20px;max-width:960px;margin:0 auto;}
+.panel{display:none;}.panel.on{display:block;}
+/* Common */
+.sec{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:16px;margin-bottom:14px;}
+.sec-title{font-size:12px;letter-spacing:.3em;color:var(--gold);margin-bottom:12px;}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.fld label{font-size:11px;color:var(--text-dim);letter-spacing:.1em;}
+input[type=text],input[type=number],textarea,select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:2px;font:13px 'Noto Serif TC',serif;width:100%;outline:none;transition:border-color .15s;}
+input:focus,textarea:focus,select:focus{border-color:var(--gold-dim);}
+textarea{resize:vertical;min-height:60px;}select option{background:var(--bg3);}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:1px solid;border-radius:2px;cursor:pointer;font:12px 'Noto Serif TC',serif;letter-spacing:.1em;transition:all .15s;background:none;white-space:nowrap;}
+.btn-p{color:var(--gold);border-color:var(--gold-dim);}.btn-p:hover{background:rgba(194,80,40,.15);}
+.btn-d{color:#e06060;border-color:#803030;}.btn-d:hover{background:rgba(200,60,60,.15);}
+.btn-g{color:var(--text-dim);border-color:var(--border);}.btn-g:hover{color:var(--text);border-color:var(--text-dim);}
+.btn-sm{padding:4px 10px;font-size:11px;}.btn-full{width:100%;justify-content:center;}
+/* Chapter sub-tabs */
+.chtabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap;}
+.chtab{padding:5px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;color:var(--text-dim);cursor:pointer;font-size:12px;letter-spacing:.1em;}
+.chtab.on{background:rgba(194,80,40,.2);border-color:var(--gold-dim);color:var(--gold);}
+/* Event list */
+.ev-item{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:8px 10px;display:flex;align-items:flex-start;gap:8px;margin-bottom:5px;}
+.ev-item:hover{border-color:var(--gold-dim);}
+.badge{font-size:10px;padding:2px 7px;border-radius:2px;flex-shrink:0;margin-top:2px;font-family:monospace;}
+.b-narr{background:#2a2a40;color:#8080c0;}.b-line{background:#1e301a;color:#80b060;}
+.b-chapter{background:#3a2a10;color:var(--gold);}.b-bg{background:#1a2a3a;color:#6090c0;}
+.b-show,.b-hide{background:#3a1a3a;color:#c080c0;}.b-fx{background:#3a1a1a;color:#c07070;}
+.b-stage{background:#1a3a2a;color:#60c090;}.b-blackout{background:#1a1a1a;color:#909090;}
+.b-audio{background:#1a2a1a;color:#70c070;}
+.b-item{background:#3a2a1a;color:#e0b060;}
+.b-image{background:#1a3a3a;color:#60c0c0;}
+.b-wait{background:#1a1a1a;color:#a0a0a0;}
+.ev-body{flex:1;font-size:12px;line-height:1.6;color:var(--text);}
+.ev-acts{display:flex;gap:3px;flex-shrink:0;}
+/* Media grid */
+.img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px;}
+.img-card{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:10px;text-align:center;}
+.img-thumb{width:100%;height:90px;object-fit:cover;border-radius:2px;margin-bottom:6px;background:#0a0806;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-dim);}
+img.img-thumb{display:block;}
+.img-label{font-size:11px;color:var(--gold);letter-spacing:.1em;margin-bottom:4px;}
+.img-desc{font-size:10px;color:var(--text-dim);margin-bottom:7px;}
+/* Audio rows */
+.audio-row{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap;}
+.audio-name{font-size:13px;color:var(--gold);}
+.audio-desc{font-size:10px;color:var(--text-dim);}
+audio{height:28px;flex:1;min-width:120px;}
+/* Sliders */
+.rrow{display:flex;align-items:center;gap:10px;}
+.rrow input[type=range]{flex:1;accent-color:var(--gold);}
+.rval{min-width:32px;text-align:right;font-size:13px;color:var(--gold);}
+/* Calls */
+.call-card{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:12px;margin-bottom:10px;}
+.dlg-row{display:flex;gap:6px;margin-bottom:6px;}
+.dlg-who{width:110px;flex-shrink:0;}
+/* Dropzone */
+.dz{border:2px dashed var(--border);border-radius:4px;padding:14px;text-align:center;color:var(--text-dim);font-size:12px;cursor:pointer;transition:all .15s;}
+.dz:hover,.dz.over{border-color:var(--gold-dim);color:var(--text);background:rgba(194,80,40,.05);}
+/* Toolbar */
+.bar{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;}
+.dim{color:var(--text-dim);font-size:11px;}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:none;align-items:center;justify-content:center;}
+.overlay.on{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--gold-dim);border-radius:4px;padding:20px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal h2{color:var(--gold);font-size:14px;letter-spacing:.3em;margin-bottom:14px;}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+/* Layout preview */
+#layout-wrap{position:relative;width:100%;padding-bottom:56.25%;background:#000;border:1px solid var(--border);border-radius:3px;overflow:hidden;user-select:none;}
+#layout-preview{position:absolute;inset:0;}
+#layout-preview img.lp-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;}
+/* 對話框 / 道具欄 mockup，讓後台看得到遊戲內的實際位置（唯讀） */
+#lp-inv-bar{position:absolute;left:0;right:0;bottom:0;height:var(--lp-inv-h,22px);
+  background:#0a0704;border-top:1px solid var(--gold-dim);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 14px;color:var(--gold);font-size:10px;letter-spacing:.3em;
+  pointer-events:none;z-index:4;}
+#lp-dlg{position:absolute;left:0;right:0;bottom:var(--lp-inv-h,22px);
+  pointer-events:none;z-index:3;}
+#lp-dlg-spk-wrap{padding-left:14px;line-height:0;pointer-events:none;}
+#lp-dlg-spk{display:inline-block;padding:3px 12px;background:#0a0704;
+  border:1px solid var(--gold-dim);border-bottom:none;color:var(--gold);
+  font-size:10px;letter-spacing:.25em;line-height:1.3;border-radius:2px 2px 0 0;
+  pointer-events:auto;}
+/* 對話框本體：可拖動改高度 */
+#lp-dlg-main{background:#0a0704;border-top:1px solid var(--gold-dim);
+  padding:8px 14px 10px;min-height:var(--lp-dlg-h,54px);
+  color:var(--text);font-size:10px;line-height:1.7;
+  pointer-events:auto;cursor:ns-resize;position:relative;}
+#lp-dlg-main::before{content:'⤺ 拖動改高度　／　文字上滾輪改字體';position:absolute;top:2px;right:6px;
+  color:var(--gold-dim);font-size:8px;letter-spacing:.1em;opacity:.6;pointer-events:none;}
+#lp-dlg-text{display:inline-block;cursor:nwse-resize;pointer-events:auto;
+  background:rgba(194,80,40,.05);padding:2px 6px;border-radius:2px;
+  outline:1px dashed rgba(194,80,40,.25);}
+/* Chapter card overlay (toggle on/off) */
+#lp-ch{position:absolute;inset:0;background:#000;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:4px;z-index:5;}
+#lp-ch>div{cursor:nwse-resize;color:var(--gold);font-family:'Noto Serif TC',serif;pointer-events:auto;}
+#lp-ch-jp{color:var(--gold-dim);letter-spacing:.6em;}
+#lp-ch-line{width:50px;height:1px;background:var(--gold-dim);margin:6px 0;}
+#lp-ch-main{letter-spacing:.3em;}
+#lp-ch-sub{color:var(--text-dim);letter-spacing:.4em;}
+.lp-sprite{position:absolute;bottom:0;cursor:move;border:1px dashed rgba(194,80,40,.6);transition:border-color .15s;}
+.lp-sprite:hover{border-color:var(--gold);}
+.lp-sprite img{width:100%;height:auto;object-fit:contain;display:block;pointer-events:none;}
+.lp-label{position:absolute;top:2px;left:4px;font-size:9px;background:rgba(0,0,0,.7);color:var(--gold);padding:1px 4px;border-radius:1px;pointer-events:none;}
+/* Bagua image upload（在關卡三裡用：niche-bg、bagua-hint、8 個卦圖） */
+.bagua-up-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.bagua-up-cell{display:flex;flex-direction:column;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:4px;min-width:0;flex:1;}
+.bagua-up-thumb{position:relative;aspect-ratio:1;background:#0a0806;display:flex;align-items:center;justify-content:center;color:var(--gold-dim);font-size:11px;letter-spacing:.05em;font-family:'Noto Serif TC',serif;border-radius:1px;overflow:hidden;text-align:center;line-height:1.2;padding:4px;}
+.bagua-up-thumb img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0;}
+.bagua-up-thumb .ba-up-corner{position:absolute;top:2px;left:3px;font-size:9px;color:var(--gold);background:rgba(10,7,4,.85);padding:1px 4px;border-radius:1px;letter-spacing:.05em;z-index:2;}
+.bagua-up-actions{display:flex;gap:2px;}
+.bagua-up-actions .btn{flex:1;font-size:10px!important;padding:3px 0!important;justify-content:center;}
+.bagua-up-grid-8{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:520px;}
+/* Puzzle 25-piece upload grid（在關卡四裡用） */
+.pz-up-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;max-width:560px;margin:8px auto 0;}
+.pz-up-cell{display:flex;flex-direction:column;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:2px;padding:3px;}
+.pz-up-thumb{position:relative;aspect-ratio:1;background:#0a0806;display:flex;align-items:center;justify-content:center;color:var(--gold-dim);font-size:18px;letter-spacing:.05em;font-family:'Noto Serif TC',serif;border-radius:1px;overflow:hidden;}
+.pz-up-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+.pz-up-num{position:absolute;top:2px;left:3px;font-size:9px;color:var(--gold);background:rgba(10,7,4,.85);padding:1px 4px;border-radius:1px;letter-spacing:.05em;}
+.pz-up-actions{display:flex;gap:2px;}
+.pz-up-actions .btn{flex:1;font-size:10px!important;padding:3px 0!important;justify-content:center;}
+/* Footer */
+#ftr{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:10px 20px;display:flex;gap:10px;align-items:center;justify-content:flex-end;z-index:200;}
+#ftr-note{flex:1;font-size:11px;color:var(--text-dim);}
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--gold-dim);}
+.mt12{margin-top:12px;}.mt16{margin-top:16px;}
+.row{display:flex;gap:8px;align-items:center;}
+/* Drag-to-reorder event list */
+.ev-item{cursor:default;}
+.ev-item[draggable="true"]{cursor:grab;}
+.ev-item.ev-dragging{opacity:.35;outline:1px dashed var(--gold-dim);}
+.ev-item.ev-drag-over-top{border-top:2px solid var(--gold);}
+.ev-item.ev-drag-over-bot{border-bottom:2px solid var(--gold);}
+.ev-drag-handle{color:var(--text-dim);font-size:15px;padding:0 4px 0 0;cursor:grab;flex-shrink:0;user-select:none;align-self:stretch;display:flex;align-items:center;}
+.ev-drag-handle:hover{color:var(--gold);}
+/* Insert-between button */
+.ev-insert-row{height:18px;display:flex;align-items:center;gap:6px;padding:0 2px;cursor:pointer;opacity:0;transition:opacity .15s;}
+.ev-insert-row:hover{opacity:1;}
+.ev-insert-row:hover .ev-insert-line{background:var(--gold-dim);}
+.ev-insert-line{flex:1;height:1px;background:var(--border);transition:background .15s;}
+.ev-insert-btn{font-size:10px;color:var(--gold-dim);white-space:nowrap;border:1px solid var(--border);border-radius:2px;padding:1px 6px;transition:all .15s;}
+.ev-insert-row:hover .ev-insert-btn{color:var(--gold);border-color:var(--gold-dim);}
+/* Appear preview */
+#ap-preview{background:#0e0a06;border-radius:4px;padding:18px 20px;margin-bottom:16px;border:1px solid var(--border);}
+#ap-prev-dlg{background:rgba(10,7,4,.9);border:1px solid #6b2818;display:flex;flex-direction:column;position:relative;transition:height .1s,padding .1s;}
+#ap-prev-spk{font-family:'Noto Serif TC',serif;color:#c25028;letter-spacing:.25em;margin-bottom:.5em;white-space:nowrap;overflow:hidden;}
+#ap-prev-txt{font-family:'Noto Serif TC',serif;color:#f0e5d0;line-height:1.85;overflow:hidden;}
+#ap-prev-arrow{position:absolute;right:10px;bottom:8px;color:#6b2818;font-size:10px;}
+#ap-prev-ch{display:flex;flex-direction:column;align-items:center;gap:3px;margin-top:14px;padding:12px 0;border-top:1px solid var(--border);}
+#ap-prev-jp{font-family:'Noto Serif TC',serif;color:#6b2818;letter-spacing:.6em;}
+#ap-prev-main{font-family:'Noto Serif TC',serif;color:#c25028;letter-spacing:.3em;}
+#ap-prev-sub{font-family:'Noto Serif TC',serif;color:#c8b89c;letter-spacing:.4em;}
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <h1>後台管理　—　臺中古蹟體驗</h1>
+  <div id="dev-toggle-wrap" style="margin-left:24px;display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.2em;">
+    <span style="color:var(--text-dim);">遊戲 DEV 工具列：</span>
+    <button id="dev-toggle-btn" type="button" onclick="toggleDevBar()"
+      style="padding:4px 14px;border-radius:2px;border:1px solid var(--brick);
+             background:var(--brick);color:var(--stone);
+             font-family:inherit;font-size:12px;letter-spacing:.4em;font-weight:700;cursor:pointer;">開</button>
+  </div>
+  <div id="sync-dot" class="ok">● 已同步</div>
+</div>
+
+<div id="tabbar">
+  <button class="tbtn on"  onclick="switchTab('chapters',this)">章節劇情</button>
+  <button class="tbtn"     onclick="switchTab('media',this)">圖片／音訊</button>
+  <button class="tbtn"     onclick="switchTab('appear',this)">外觀設定</button>
+  <button class="tbtn"     onclick="switchTab('levels',this)">關卡</button>
+  <button class="tbtn"     onclick="switchTab('memories',this)">回憶</button>
+  <button class="tbtn"     onclick="switchTab('dream',this)">夢境</button>
+  <button class="tbtn"     onclick="switchTab('endgame',this)">終局</button>
+  <button class="tbtn"     onclick="switchTab('io',this)">匯入匯出</button>
+</div>
+
+<div id="main">
+
+  <!-- ─── CHAPTERS ─── -->
+  <div id="panel-chapters" class="panel on">
+    <div class="chtabs" id="chtabs">
+      <button class="chtab on" onclick="switchCh('ch1',this)">序章・第一章</button>
+      <button class="chtab"    onclick="switchCh('ch2',this)">第二章</button>
+      <button class="chtab"    onclick="switchCh('ch3',this)">第三章</button>
+      <button class="chtab"    onclick="switchCh('ch4',this)">第四章</button>
+      <button class="chtab"    onclick="switchCh('ch5',this)">第五章</button>
+      <button class="chtab"    onclick="switchCh('ch6',this)">第六章</button>
+      <button class="chtab"    onclick="switchCh('ch7',this)">第七章</button>
+      <button class="chtab"    onclick="switchCh('ch8',this)">第八章</button>
+      <button class="chtab"    onclick="switchCh('ch9',this)">第九章</button>
+      <button class="chtab"    onclick="switchCh('ch10',this)">第十章</button>
+      <button class="chtab"    onclick="switchCh('ch11',this)">第十一章</button>
+    </div>
+    <div class="bar">
+      <button class="btn btn-p btn-sm" onclick="addEvent()">＋ 新增事件</button>
+      <span class="dim" id="ev-count"></span>
+    </div>
+    <div id="ev-list"></div>
+  </div>
+
+  <!-- ─── MEDIA ─── -->
+  <div id="panel-media" class="panel">
+    <div class="sec">
+      <div class="sec-title">圖片資源</div>
+      <div class="img-grid" id="img-grid"></div>
+      <div class="bar mt12">
+        <button class="btn btn-g btn-sm" onclick="addCustomImg()">＋ 新增自訂圖片／場景</button>
+      </div>
+      <div id="custom-img-list"></div>
+    </div>
+    <div class="sec mt16">
+      <div class="sec-title">固定音訊</div>
+      <div id="fixed-audio-list"></div>
+    </div>
+    <div class="sec mt16">
+      <div class="sec-title">自訂音效 <span class="dim" style="font-size:10px;">（可在章節腳本中播放／停止）</span></div>
+      <div id="custom-audio-list"></div>
+      <div class="bar mt12">
+        <button class="btn btn-p btn-sm" onclick="addCustomAudio()">＋ 新增音效</button>
+        <span class="dim">給每個音效取一個識別名稱（如 rain、ambient）</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── APPEAR（合併：場景布局 + 字體 + 對話框 高度，全部用拖動／雙指縮放） ─── -->
+  <div id="panel-appear" class="panel">
+    <div class="sec">
+      <div class="sec-title">外觀設定</div>
+      <p class="dim" style="margin-bottom:10px;line-height:1.8;font-size:11px;">
+        在預覽框內直接操作：<br>
+        ・拖動立繪 = 移動位置　・在立繪上雙指縮放（或滾輪） = 改大小<br>
+        ・拖動對話框 = 改高度　・在對話文字上雙指縮放（或滾輪） = 改字體大小<br>
+        ・在章節文字上雙指縮放 = 改章節字體大小
+      </p>
+      <div class="bar">
+        <label class="dim">背景：</label>
+        <select id="layout-bg-sel" onchange="layoutLoadBg(this.value)" style="width:auto;padding:5px 8px;">
+          <option value="phonebooth-exterior">電話亭外觀</option>
+          <option value="phone-interior">電話亭內部</option>
+          <option value="exchange-scene">電信交換局</option>
+        </select>
+        <button class="btn btn-g btn-sm" onclick="toggleApChapter()" id="ap-ch-toggle">顯示章節預覽</button>
+      </div>
+      <div id="layout-wrap">
+        <div id="layout-preview">
+          <img class="lp-bg" id="lp-bg-img" src="" alt="">
+          <!-- sprite divs injected here -->
+          <div id="lp-dlg" data-gesture="dlg">
+            <div id="lp-dlg-spk-wrap"><div id="lp-dlg-spk">語嫣</div></div>
+            <div id="lp-dlg-main">
+              <div id="lp-dlg-text" data-gesture="dlgFont">這是範例對話文字，用於即時調整字體大小。</div>
+            </div>
+          </div>
+          <div id="lp-inv-bar"><span>道具</span><span>0　▲</span></div>
+          <!-- 章節標題預覽 (toggle on/off) -->
+          <div id="lp-ch" style="display:none;">
+            <div id="lp-ch-jp"  data-gesture="jp">第一章</div>
+            <div id="lp-ch-line"></div>
+            <div id="lp-ch-main" data-gesture="main">電話亭</div>
+            <div id="lp-ch-sub"  data-gesture="sub">臺中市・某條街</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── 關卡（addable list；關卡一 = 交換機/分機/通話、關卡二 = 鎖住頁/地圖/提示商城/密碼） ─── -->
+  <div id="panel-levels" class="panel">
+    <div class="bar">
+      <button class="btn btn-p btn-sm" onclick="addLevel()">＋ 新增關卡</button>
+      <span class="dim">點下方分頁編輯各關卡</span>
+    </div>
+    <div class="chtabs" id="lv-tabs"></div>
+    <div id="lv-body"></div>
+  </div>
+
+  <!-- ─── 回憶（每塊滑塊的黑屏回憶劇情 + 圖片） ─── -->
+  <div id="panel-memories" class="panel">
+    <div class="bar">
+      <span class="dim">每塊滑塊解開後，玩家點擊滑塊會進入「黑屏回憶」。每段回憶在這裡編輯。</span>
+    </div>
+    <div class="chtabs" id="mem-tabs"></div>
+    <div id="mem-body"></div>
+  </div>
+
+  <!-- ─── 夢境（每區的紙條池與正確／錯誤設定） ─── -->
+  <div id="panel-dream" class="panel">
+    <div class="bar">
+      <span class="dim">調整 ch6 夢境探索的三個區域 — 各區的棋盤大小、外圖入口座標、紙條池（含正確／錯誤）與生命值上限。</span>
+    </div>
+    <div class="sec">
+      <div class="sec-title">總體設定</div>
+      <div class="bar" style="gap:24px;">
+        <div class="fld" style="margin-bottom:0;"><label>生命值上限</label>
+          <input type="number" id="dr-max-hearts" min="1" max="20" value="5" style="width:80px" oninput="dirty()">
+        </div>
+        <div class="fld" style="margin-bottom:0;"><label>外圖棋盤寬</label>
+          <input type="number" id="dr-outer-w" min="2" max="12" value="6" style="width:80px" oninput="dirty()">
+        </div>
+        <div class="fld" style="margin-bottom:0;"><label>外圖棋盤高</label>
+          <input type="number" id="dr-outer-h" min="2" max="12" value="6" style="width:80px" oninput="dirty()">
+        </div>
+      </div>
+    </div>
+    <div class="chtabs" id="dr-tabs"></div>
+    <div id="dr-body"></div>
+  </div>
+
+  <!-- ─── 終局（華容道 8 塊磚圖、警告文字、拍照辨識的參考圖） ─── -->
+  <div id="panel-endgame" class="panel">
+    <div class="bar">
+      <span class="dim">第七章終局：phylock 密碼鎖 → 華容道（8 塊磚拼）→ 黑屏旁白 → 拍照辨識 → 結局。這裡設定華容道與拍照辨識的素材。</span>
+    </div>
+    <div class="sec">
+      <div class="sec-title">華容道</div>
+      <div class="fld"><label>警告大字（顯示在華容道頂端）</label>
+        <input type="text" id="kl-warning-input" placeholder="注意！僅有一次通關機會..." oninput="dirty();_kdSaveText('warningText',this.value)">
+      </div>
+      <div class="fld"><label>完成按鈕文字</label>
+        <input type="text" id="kl-done-input" placeholder="我已經完成了......嗎？" oninput="dirty();_kdSaveText('doneButtonText',this.value)">
+      </div>
+      <div class="fld"><label>空格位置（3×3 中的第幾格留空，預設 9 = 右下）</label>
+        <select id="kl-empty-input" onchange="_klSetEmpty(this.value)">
+          <option value="1">1（左上）</option>
+          <option value="2">2（上中）</option>
+          <option value="3">3（右上）</option>
+          <option value="4">4（左中）</option>
+          <option value="5">5（正中央）</option>
+          <option value="6">6（右中）</option>
+          <option value="7">7（左下）</option>
+          <option value="8">8（下中）</option>
+          <option value="9" selected>9（右下）</option>
+        </select>
+      </div>
+      <div class="sec-title" style="margin-top:18px;">磚圖（3×3 九宮格，其中一格為空，其他 8 張上傳）</div>
+      <p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:10px;">
+        上傳對應編號 1～9 的圖（空格位置的圖會被忽略）。建議用同一張完整圖切成 3×3 後分別上傳。
+      </p>
+      <div id="kl-blocks-grid"></div>
+    </div>
+    <div class="sec mt16">
+      <div class="sec-title">拍照辨識（終局 photo-final）</div>
+      <p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:10px;">
+        玩家在現實打開華容道盒，拿出辨識物，需要拍照比對才能進入下一段劇情。上傳「正確答案」的參考圖。
+      </p>
+      <div id="pf-ref-area"></div>
+    </div>
+  </div>
+
+  <!-- ─── I/O ─── -->
+  <div id="panel-io" class="panel">
+    <div class="sec">
+      <div class="sec-title">匯出</div>
+      <p class="dim" style="margin-bottom:10px;line-height:1.8;">匯出所有劇情設定為 .json 檔。圖片音訊存在瀏覽器本地，不含於 JSON。</p>
+      <button class="btn btn-p btn-full" onclick="exportJSON()">匯出 JSON</button>
+    </div>
+    <div class="sec mt16">
+      <div class="sec-title">匯入</div>
+      <label class="dz" style="display:block;" for="import-file">點擊上傳 JSON 檔案</label>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
+    </div>
+    <div class="sec mt16">
+      <div class="sec-title">測試工具</div>
+      <p class="dim" style="margin-bottom:10px;">提示商城僅能購買 1 次，購買後燈泡永久消失。測試時可從這裡解鎖重新購買。</p>
+      <button class="btn btn-g btn-full" onclick="resetHintPurchase()">🔓 解鎖提示商城（允許再次購買）</button>
+    </div>
+    <div class="sec mt16">
+      <div class="sec-title">危險操作</div>
+      <p class="dim" style="margin-bottom:10px;">還原所有劇情設定。圖片音訊不受影響。</p>
+      <button class="btn btn-d btn-full" onclick="resetAll()">還原所有預設值</button>
+    </div>
+  </div>
+
+</div><!-- #main -->
+
+<div id="ftr">
+  <span id="ftr-note"></span>
+  <button class="btn btn-g btn-sm" onclick="loadStorage()">放棄變更</button>
+  <button class="btn btn-p" onclick="saveAll()">儲存並同步</button>
+</div>
+
+<!-- Event Edit Modal -->
+<div class="overlay" id="ev-modal">
+  <div class="modal">
+    <h2 id="modal-title">編輯事件</h2>
+    <div class="fld">
+      <label>事件類型</label>
+      <select id="modal-type" onchange="buildModalFields()">
+        <option value="narr">旁白 (narr)</option>
+        <option value="line">台詞 (line)</option>
+        <option value="chapter">章節標題 (chapter)</option>
+        <option value="show">顯示立繪 (show)</option>
+        <option value="hide">隱藏立繪 (hide)</option>
+        <option value="bg">背景 (bg)</option>
+        <option value="image">純顯示圖片 (image)</option>
+        <option value="wait">等待延遲 (wait)</option>
+        <option value="fx">特效 (fx)</option>
+        <option value="blackout">黑幕 (blackout)</option>
+        <option value="stage">互動舞台 (stage)</option>
+        <option value="audio">音效控制 (audio)</option>
+        <option value="item">取得道具 (item)</option>
+      </select>
+    </div>
+    <div id="modal-fields"></div>
+    <div class="mfoot">
+      <button class="btn btn-g btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-p btn-sm" onclick="confirmModal()">確認</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Audio Add Modal -->
+<div class="overlay" id="audio-modal">
+  <div class="modal">
+    <h2>新增音效</h2>
+    <div class="fld"><label>識別名稱（英文，如 rain、ambient、sfx-door）</label>
+      <input type="text" id="au-key" placeholder="rain"></div>
+    <div class="fld"><label>顯示名稱</label>
+      <input type="text" id="au-label" placeholder="暴雨聲"></div>
+    <div class="fld"><label>預設循環播放</label>
+      <select id="au-loop"><option value="true">是（適合背景音）</option><option value="false">否（一次性音效）</option></select></div>
+    <div class="mfoot">
+      <button class="btn btn-g btn-sm" onclick="closeAudioModal()">取消</button>
+      <button class="btn btn-p btn-sm" onclick="confirmAddAudio()">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Image Add Modal -->
+<div class="overlay" id="cimg-modal">
+  <div class="modal">
+    <h2>新增自訂圖片</h2>
+    <div class="fld"><label>識別名稱（英文，如 sp-hana、bg-station）</label>
+      <input type="text" id="ci-key" placeholder="sp-hana"></div>
+    <div class="fld"><label>顯示名稱</label>
+      <input type="text" id="ci-label" placeholder="花子 立繪"></div>
+    <div class="fld"><label>類型</label>
+      <select id="ci-type">
+        <option value="sprite">立繪（角色）</option>
+        <option value="bg">背景圖</option>
+      </select></div>
+    <div class="mfoot">
+      <button class="btn btn-g btn-sm" onclick="document.getElementById('cimg-modal').classList.remove('on')">取消</button>
+      <button class="btn btn-p btn-sm" onclick="confirmAddImg()">新增</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ══ Constants ══ */
+var LS_KEY='tcgame_data', IDB_NAME='tcgame_assets', IDB_VER=1, IDB_STORE='assets', BC_NAME='tcgame-sync';
+
+/* ══ Default Data ══ */
+var DEFAULT_DATA={
+  ch1:[
+    {t:'chapter',jp:'序章',main:'電話亭',sub:'臺中市・某條街'},
+    {t:'narr',text:'風暴大雨的夜晚。街上杳無人煙，燈火闌珊。\n街燈在雨幕後搖搖欲墜，映著路面。'},
+    {t:'narr',text:'閃爍的光線下，有個人影跌跌撞撞地跑過，\n竄進路旁一座老舊的電話亭內。'},
+    {t:'narr',text:'狼狽躲雨的女子氣喘吁吁，靠上門板。'},
+    {t:'show',id:'sp-yuyan'},
+    {t:'line',who:'語嫣',text:'……真是倒楣啊。\n怎麼迷路還碰上這種大雨。'},
+    {t:'narr',text:'她掏出手機，沉默地看著螢幕。\n螢幕灰白的昭示著這裡沒有訊號。'},
+    {t:'narr',text:'四周靜得只剩嘈雜雨聲。\n電話亭老舊，門口貼著一張在風雨中屹立不搖的告示。'},
+    {t:'narr',text:'「停用中」'},
+    {t:'narr',text:'百無聊賴的語嫣終於抬起頭，看著那台笨重的老式電話機。'},
+    {t:'fx',fn:'phoneGlow'},
+    {t:'line',who:'語嫣',text:'……咦？'},
+    {t:'stage',id:'phone-ring'},
+    {t:'narr',text:'話筒是冰涼的，帶著鐵的金屬氣味和一種熟悉的感覺。'},
+    {t:'fx',fn:'lightning2'},{t:'fx',fn:'rainFade'},
+    {t:'narr',text:'一陣陰風驟來。雨聲忽地輕了，語嫣的世界歸於安靜。'},
+    {t:'narr',text:'玻璃外的世界，悄悄換了個樣子。'},
+    {t:'blackout',text:'日式建築',duration:3000},
+    {t:'hide',id:'sp-yuyan'},
+    {t:'chapter',jp:'第一章',main:'臺中郵便局 臺中電信交換局',sub:'電信課'},
+    {t:'bg',scene:'1908'},
+    {t:'show',id:'sp-yuyan-1908'},
+    {t:'narr',text:'睜開雙眼，她茫然地看了看四周。\n意識模糊，像剛從深水裡被打撈起來。'},
+    {t:'narr',text:'眼前是一面巨大的木製機台，\n密密麻麻的圓形插孔，懸掛的跳線，閃著昏黃光的信號掉牌。'},
+    {t:'narr',text:'那是日治年代的手搖式電話交換機。\n每一通電話，都要靠通信事務員手動轉接。'},
+    {t:'line',who:'語嫣',text:'……這是哪裡？'},
+    {t:'narr',text:'她喃喃自語，無人應答。'},
+    {t:'line',who:'語嫣',text:'噢⋯⋯我在工作呀。'},
+    {t:'narr',text:'就在這時，交換機的信號掉牌「啪」的一聲落下。\n來電了。'},
+    {t:'line',who:'語嫣',text:'……先做眼前的事吧。'},
+    {t:'stage',id:'switchboard'}
+  ],
+  ch2:[
+    {t:'line',who:'語嫣',text:'呼……終於結束了。'},
+    {t:'narr',text:'她靠在椅背上，望著天花板發呆。'},
+    {t:'narr',text:'腦子裡忽然有什麼東西一閃而過。\n像是聽見什麼，又像什麼都沒有。'},
+    {t:'line',who:'語嫣',text:'（喃喃）嫣嫣⋯⋯？'},
+    {t:'narr',text:'她搖搖頭。大概是幻覺。\n\n但她站了起來，走到窗邊往外看。\n陌生的街道，陌生的建築。'},
+    {t:'line',who:'語嫣',text:'臺中驛⋯⋯'},
+    {t:'narr',text:'她說不清楚為什麼，但她知道自己該去那裡。\n語嫣在對面書店買了一張地圖，找到了位置。'},
+    {t:'chapter',jp:'第二章',main:'前往臺中驛',sub:''},
+    {t:'item',id:'map',name:'地圖',icon:'🗺',asset:'map'},
+    {t:'stage',id:'hint-gate'},
+    /* 解開密碼後 → 進入壁龕劇情（背景換成壁龕圖、加上「我已到達」按鈕、再進八卦關） */
+    {t:'bg',scene:'niche-bg'},
+    {t:'narr',text:'語嫣循著線索，找到了山牆下的壁龕。\n牆面有個已被封住的出水口，下方是圓形石製的盛水盆。'},
+    {t:'narr',text:'她駐足凝視，指尖輕輕滑過冰涼的石面。'},
+    {t:'line',who:'語嫣',text:'……我認得這裡。'},
+    {t:'stage',id:'niche'},
+    {t:'stage',id:'bagua'},
+    /* 八卦解開後的劇情（背景仍是壁龕圖） */
+    {t:'narr',text:'封印散去，水盆深處浮出一塊滑塊。\n那塊石頭刻著一道指引——通往下一處的線索。'},
+    {t:'line',who:'語嫣',text:'……雁淇？'},
+    {t:'narr',text:'她不知為何脫口說出那兩個字，但話一出口，胸口便一陣發緊，\n像是從很遠的地方喚回了什麼。'},
+    {t:'narr',text:'語嫣將滑塊收進口袋，看了看刻紋指示的方向。'},
+    {t:'line',who:'語嫣',text:'這裡不是終點，他在等我。'},
+    {t:'narr',text:'她踏出壁龕，廊道盡頭似乎還有未走完的路。'}
+  ],
+  ch3:[
+    {t:'chapter',jp:'第三章',main:'記憶的拼圖',sub:'破碎的合照'},
+    {t:'narr',text:'循著刻紋指引，語嫣穿過一段昏暗的廊道。\n燈影搖晃，舊海報已經泛黃。'},
+    {t:'narr',text:'走廊盡頭，地上散落著一張被撕成碎片的舊照片。'},
+    {t:'line',who:'語嫣',text:'這是……'},
+    {t:'narr',text:'她蹲下身，輕輕拾起每一片碎片。\n碎片的紋路彷彿在召喚她，重新拼回完整的記憶。'},
+    {t:'narr',text:'她攤開手中的碎片，深吸一口氣，開始拼合。'},
+    {t:'stage',id:'puzzle'},
+    {t:'narr',text:'最後一片就位的瞬間，整張拼圖向後翻轉。'}
+  ],
+  /* ── 第三～八個執念（六個 placeholder 章節，每章解完贈 slider3–slider8） ── */
+  ch4:[
+    {t:'chapter',jp:'第四章',main:'執念之三',sub:'（待續）'},
+    {t:'narr',text:'（這裡寫第三個執念的劇情，謎題解開後贈滑塊・三）'},
+    {t:'item',id:'slider3',name:'滑塊・三',icon:'🪨',asset:'slider3'}
+  ],
+  ch5:[
+    {t:'chapter',jp:'第五章',main:'執念之四',sub:'（待續）'},
+    {t:'narr',text:'（第四個執念劇情，解開後贈滑塊・四）'},
+    {t:'item',id:'slider4',name:'滑塊・四',icon:'🪨',asset:'slider4'}
+  ],
+  ch6:[
+    {t:'chapter',jp:'第六章',main:'執念之五',sub:'（待續）'},
+    {t:'narr',text:'（第五個執念劇情，解開後贈滑塊・五）'},
+    {t:'item',id:'slider5',name:'滑塊・五',icon:'🪨',asset:'slider5'}
+  ],
+  ch7:[
+    {t:'chapter',jp:'第七章',main:'執念之六',sub:'（待續）'},
+    {t:'narr',text:'（第六個執念劇情，解開後贈滑塊・六）'},
+    {t:'item',id:'slider6',name:'滑塊・六',icon:'🪨',asset:'slider6'}
+  ],
+  ch8:[
+    {t:'chapter',jp:'第八章',main:'執念之七',sub:'（待續）'},
+    {t:'narr',text:'（第七個執念劇情，解開後贈滑塊・七）'},
+    {t:'item',id:'slider7',name:'滑塊・七',icon:'🪨',asset:'slider7'}
+  ],
+  ch9:[
+    {t:'chapter',jp:'第九章',main:'執念之八',sub:'（待續）'},
+    {t:'narr',text:'（第八個執念劇情，解開後贈滑塊・八；八塊集齊後將出現華容道盒子）'},
+    {t:'item',id:'slider8',name:'滑塊・八',icon:'🪨',asset:'slider8'}
+  ],
+  /* ── 結局：華容道 + 電磁鎖 + 徽章 ── */
+  ch10:[
+    {t:'chapter',jp:'第十章',main:'最後一道機關',sub:'華容道與電磁鎖'},
+    {t:'narr',text:'集齊八塊滑塊後，語嫣在月台底下找到一個古銅色的盒子。\n盒蓋雕著一輛火車的浮雕，正中央有一塊空缺。'},
+    {t:'narr',text:'她蹲下身，把碎片一一推進相應的軌道——這是一道華容道。'},
+    {t:'narr',text:'（華容道關卡尚待開發，請暫時想像她解開的瞬間。）'},
+    {t:'narr',text:'最後一塊滑塊放進中央，電路接通的瞬間，盒子內側浮現一行字：「請輸入鑰匙密碼」。'},
+    {t:'stage',id:'phylock'},
+    {t:'narr',text:'喀的一聲，盒子鎖開了。\n裡面靜靜躺著一枚老舊的火車徽章。'},
+    {t:'line',who:'語嫣',text:'這個徽章……雁淇？'}
+  ],
+  ch11:[
+    {t:'chapter',jp:'第十一章',main:'歸途',sub:'雨停天亮'},
+    {t:'narr',text:'（結局劇情待寫：日軍機密、追逐、電話亭、雁淇最後的話、語嫣中彈、現代醒來。）'},
+    {t:'narr',text:'手中的話筒仍是溫熱的。\n雨停了，天亮了。'},
+    {t:'narr',text:'手機螢幕亮起——「雁淇」兩個字浮在來電畫面上。'},
+    {t:'narr',text:'她愣了很久，哭著笑了，按下接聽。'}
+  ],
+  extraChapters:{},extraChapterCount:0,
+  jacks:[
+    {id:'j01',name:'三井物産',num:'二三番'},{id:'j02',name:'臺中驛',num:'四番'},
+    {id:'j03',name:'臺灣銀行',num:'五番'},{id:'j04',name:'醉月樓',num:'六番'},
+    {id:'j05',name:'郵便局',num:'七番'},{id:'j06',name:'彰化銀行',num:'八番'},
+    {id:'j07',name:'帝國製糖',num:'九番'},{id:'j08',name:'長谷川醫院',num:'十番'},
+    {id:'j09',name:'臺中廳',num:'十一番'},{id:'j10',name:'臺灣倉庫',num:'十二番'},
+    {id:'j11',name:'臺中座',num:'十三番'},{id:'j12',name:'大和料理店',num:'十四番'},
+    {id:'j13',name:'青果組合',num:'十五番'},{id:'j14',name:'臺中公園',num:'十六番'},
+    {id:'j15',name:'警察署',num:'十七番'},{id:'j16',name:'臺中學校',num:'十八番'}
+  ],
+  calls:[
+    {fromId:'j01',toId:'j02',fromName:'三井物産',fromNum:'二三番',toName:'臺中驛',toNum:'四番',
+     dialogs:[{who:'三井物産 用戶',text:'喂，是電話局嗎？請幫我接到臺中驛。'},{who:'語嫣',text:'好的，請稍候。'},{who:'臺中驛 站長',text:'喂，臺中驛，請說。'}]},
+    {fromId:'j06',toId:'j03',fromName:'彰化銀行',fromNum:'八番',toName:'臺灣銀行',toNum:'五番',
+     dialogs:[{who:'彰化銀行 行員',text:'麻煩幫我接臺灣銀行臺中支店。'},{who:'語嫣',text:'好的，請稍候。'},{who:'臺灣銀行 行員',text:'您好，臺灣銀行，請說。'}]},
+    {fromId:'j09',toId:'j05',fromName:'臺中廳',fromNum:'十一番',toName:'郵便局',toNum:'七番',
+     dialogs:[{who:'臺中廳 官員',text:'我是臺中廳，請接郵便局，有急件。'},{who:'語嫣',text:'是，馬上為您接通。'},{who:'郵便局 局員',text:'您好，郵便局，請說。'}]},
+    {fromId:'j13',toId:'j08',fromName:'青果組合',fromNum:'十五番',toName:'長谷川醫院',toNum:'十番',
+     dialogs:[{who:'青果組合 職員',text:'快！幫我接長谷川醫院！有人受傷！'},{who:'語嫣',text:'馬上接通！'},{who:'長谷川醫院 護士',text:'長谷川醫院，請說。'}]}
+  ],
+  customAudio:[],
+  customImages:[],
+  spriteLayout:{
+    'sp-yuyan':     {x:30,yBottom:0,w:38},
+    'sp-yuyan-1908':{x:32,yBottom:0,w:36},
+    'sp-yanqi':     {x:65,yBottom:0,w:38}
+  },
+  map:{promptText:'語嫣在對面書店買了一張地圖。\n確認臺中驛的位置後，她踏出了門。',buttonText:'繼續前往'},
+  stage2:{threshold:70,hintPrefix:'您購得的線索',hintAnswer:''},
+  hintShop:{hintText:'驛站正中，百萬行蹤。\n莫看遠方雲，且聽腳下風。\n十字交織處，星芒指長空，\n歸途之標，盡在方寸圓融。\n尋正確物，換前路通。\n用照片換取下一段線索。',payBtnText:'以照片購買'},
+  bagua:{incantations:[
+    '澤畔有山，山色無言。\n感之以誠，應之以顫。\n目所未觸，心已先亂。\n此為咸始，動而未言。',
+    '山下有水，行而不知所往。\n蒙者非暗，是光未至之際。\n問之不答，答之又問。\n兩岸皆霧，渡口無人掌燈。',
+    '澤氣升騰，直衝九天。\n夬者，決也，五陽逼一陰於頂。\n此言一出，無可追回。\n天若有答，便是晴；天若無聲，亦已應。',
+    '澤中生火，水火不容卻仍相擁。\n革者，舊皮脫盡，新色方顯。\n從此山河改色，日月換位。\n燒至澤底，燙仍不知。',
+    '風入火中，火憑風勢，風藉火明。\n家者，各有其位，各守其則。\n灶有火餘溫，窗有穿堂風。\n親近者，最易為細故所傷。',
+    '火，性上而炎，澤性潤下，背道而馳。\n睽者，同根而異向，相識而相違。\n昨日之澤，今日之火。\n燒的是同一片。',
+    '水覆於水，險摞於險。\n兩淵相對，緘口不言。\n沉默卻非無話可說。\n水外仍是水，無岸可渡。',
+    '風起於水上，萬紋皆起。\n渙者非滅，為形將盡而質猶存。\n一切離散之物，終將凝聚。\n此後，水不盡，風不散。'
+  ]},
+  levels:[
+    {id:'lv1',name:'關卡一',type:'switchboard'},
+    {id:'lv2',name:'關卡二',type:'hint-gate'},
+    {id:'lv3',name:'關卡三',type:'bagua'},
+    {id:'lv4',name:'關卡四・歸納A',type:'sortbins'},
+    {id:'lv5',name:'關卡四・歸納B',type:'sortbins2'},
+    {id:'lv6',name:'關卡五・開模印花',type:'brickmold'},
+    {id:'lv7',name:'關卡十・拼圖',type:'puzzle'},
+    {id:'lv8',name:'關卡十・電磁鎖',type:'phylock'}
+  ],
+  stages:{
+    phoneRing:{prompt:'電話響起……',btn:'接起電話'},
+    switchboard:{title:'手動交換臺',cordPrefix:'跳線 ',fromLabel:'發話',toLabel:'受話',nextBtn:'下一通',doneBtn:'結束作業',dialogDelay:2400},
+    hintGate:{bulbDelay:10}
+  },
+  appear:{dialogFont:20,speakerFont:19,dialogHeight:140,dialogPad:18,dialogBottom:10,chMainFont:44,chJpFont:20,chSubFont:12}
+};
+
+/* ══ State ══ */
+var G=JSON.parse(JSON.stringify(DEFAULT_DATA));
+var _currentCh='ch1',_modalIdx=-1,_modalEv={};
+var _idb=null,_bc=null;
+try{_bc=new BroadcastChannel(BC_NAME);}catch(e){}
+
+/* ══ IndexedDB ══ */
+function openIDB(cb){
+  if(_idb){cb(_idb);return;}
+  var r=indexedDB.open(IDB_NAME,IDB_VER);
+  r.onupgradeneeded=function(e){e.target.result.createObjectStore(IDB_STORE);};
+  r.onsuccess=function(e){_idb=e.target.result;cb(_idb);};
+  r.onerror=function(){cb(null);};
+}
+function saveAsset(key,blob,cb){
+  openIDB(function(db){
+    if(!db){if(cb)cb(false);return;}
+    var tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).put(blob,key);
+    tx.oncomplete=function(){if(cb)cb(true);};
+    tx.onerror=function(){if(cb)cb(false);};
+  });
+}
+function loadAsset(key,cb){
+  openIDB(function(db){
+    if(!db){cb(null);return;}
+    var tx=db.transaction(IDB_STORE,'readonly');
+    var r=tx.objectStore(IDB_STORE).get(key);
+    r.onsuccess=function(){cb(r.result||null);};
+    r.onerror=function(){cb(null);};
+  });
+}
+function delAsset(key,cb){
+  openIDB(function(db){
+    if(!db){if(cb)cb();return;}
+    var tx=db.transaction(IDB_STORE,'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete=function(){if(cb)cb();};
+  });
+}
+
+/* ══ 首次載入：從 assets/ 資料夾自動匯入（若 IDB 尚無資料） ══ */
+var BOOTSTRAP=[
+  {key:'phonebooth-exterior',path:'assets/images/phonebooth-exterior.jpg'},
+  {key:'phone-interior',     path:'assets/images/phone-interior.jpg'},
+  {key:'exchange-scene',     path:'assets/images/exchange-scene.jpg'},
+  {key:'sp-yuyan',           path:'assets/images/sp-yuyan.png'},
+  {key:'sp-yuyan-1908',      path:'assets/images/sp-yuyan-1908.png'},
+  {key:'sp-yanqi',           path:'assets/images/sp-yanqi.png'},
+  {key:'sp-yanqi',           path:'assets/images/sp-yanqi.png'},
+  {key:'stage2-ref',         path:'assets/images/stage2-ref.jpg'},
+  {key:'hint-photo',         path:'assets/images/hint-photo.jpg'},
+  {key:'niche-bg',           path:'assets/images/niche-bg.jpg'},
+  {key:'bagua-hint',         path:'assets/images/bagua-hint.jpg'},
+  {key:'bagua-tg-qian',      path:'assets/images/bagua-tg-qian.png'},
+  {key:'bagua-tg-dui',       path:'assets/images/bagua-tg-dui.png'},
+  {key:'bagua-tg-li',        path:'assets/images/bagua-tg-li.png'},
+  {key:'bagua-tg-zhen',      path:'assets/images/bagua-tg-zhen.png'},
+  {key:'bagua-tg-xun',       path:'assets/images/bagua-tg-xun.png'},
+  {key:'bagua-tg-kan',       path:'assets/images/bagua-tg-kan.png'},
+  {key:'bagua-tg-gen',       path:'assets/images/bagua-tg-gen.png'},
+  {key:'bagua-tg-kun',       path:'assets/images/bagua-tg-kun.png'},
+  {key:'music',              path:'assets/audio/music.mp3'},
+  {key:'ring',               path:'assets/audio/ring.mp3'}
+];
+/* 第四關拼圖：25 塊（puzzle-1 ～ puzzle-25）+ 拼圖背面合照 */
+(function(){for(var __i=1;__i<=25;__i++)BOOTSTRAP.push({key:'puzzle-'+__i,path:'assets/images/puzzle-'+__i+'.jpg'});})();
+BOOTSTRAP.push({key:'puzzle-back-photo',path:'assets/images/puzzle-back-photo.jpg'});
+function bootstrapAssets(cb){
+  /* 同 index.html：把固定資源 + 自訂音訊／圖片全部納入 bootstrap，
+     已經在 IDB 的不覆蓋；缺的就試著從 assets/ 拉。 */
+  var list=BOOTSTRAP.slice();
+  if(Array.isArray(G&&G.customAudio)){
+    G.customAudio.forEach(function(a){
+      if(!a||!a.key)return;
+      ['mp3','wav','ogg','m4a'].forEach(function(ext){
+        list.push({key:a.key,path:'assets/audio/'+a.key+'.'+ext});
+      });
+    });
+  }
+  if(Array.isArray(G&&G.customImages)){
+    G.customImages.forEach(function(s){
+      if(!s||!s.key)return;
+      ['png','jpg','jpeg','webp'].forEach(function(ext){
+        list.push({key:s.key,path:'assets/images/'+s.key+'.'+ext});
+      });
+    });
+  }
+  var pending={},done=0,total=list.length,keysHandled={};
+  list.forEach(function(b){if(!pending[b.key])pending[b.key]=[];pending[b.key].push(b);});
+  var _cbFired=false;
+  function finish(){
+    done++;
+    if(done>=total&&!_cbFired&&cb){_cbFired=true;cb();}
+  }
+  if(!total){if(cb){_cbFired=true;cb();}return;}
+  setTimeout(function(){
+    if(!_cbFired&&cb){console.warn('[bootstrap] hard timeout ('+done+'/'+total+')');_cbFired=true;cb();}
+  },7000);
+  list.forEach(function(b){
+    if(keysHandled[b.key]){finish();return;}
+    loadAsset(b.key,function(existing){
+      if(existing){keysHandled[b.key]=true;
+        var rest=pending[b.key].length;pending[b.key]=[];
+        for(var k=0;k<rest;k++)finish();
+        return;
+      }
+      fetch(b.path).then(function(r){
+        if(!r.ok){console.warn('[bootstrap] fetch '+b.path+' → HTTP '+r.status);return null;}
+        return r.blob();
+      })
+        .then(function(blob){
+          if(blob&&!keysHandled[b.key]){
+            keysHandled[b.key]=true;
+            saveAsset(b.key,blob,function(){
+              console.log('[bootstrap] ✓ '+b.key+' from '+b.path);
+              bc('asset-update',{key:b.key});
+              var rest=pending[b.key].length;pending[b.key]=[];
+              for(var k=0;k<rest;k++)finish();
+            });
+          }else{
+            finish();
+          }
+        }).catch(function(err){
+          console.warn('[bootstrap] fetch '+b.path+' failed:',err.message||err);
+          finish();
+        });
+    });
+  });
+}
+
+/* ══ localStorage ══ */
+function loadStorage(){
+  var raw=null;
+  try{raw=localStorage.getItem(LS_KEY);}catch(e){}
+  if(raw){
+    try{G=JSON.parse(raw);}catch(e){G=JSON.parse(JSON.stringify(DEFAULT_DATA));}
+  }else{
+    G=JSON.parse(JSON.stringify(DEFAULT_DATA));
+    // 第一次開啟：自動儲存預設資料，讓遊戲端也能讀到
+    try{localStorage.setItem(LS_KEY,JSON.stringify(G));}catch(e){}
+    if(_bc)_bc.postMessage({type:'reload'});
+  }
+  if(!G.customAudio)G.customAudio=[];
+  if(!G.customImages)G.customImages=[];
+  if(!G.spriteLayout)G.spriteLayout={};
+  if(!Array.isArray(G.levels)||!G.levels.length){
+    G.levels=[
+      {id:'lv1',name:'關卡一',type:'switchboard'},
+      {id:'lv2',name:'關卡二',type:'hint-gate'}
+    ];
+  }
+  if(!G.map)G.map={promptText:'',buttonText:'繼續前往'};
+  if(!G.hintShop)G.hintShop=JSON.parse(JSON.stringify(DEFAULT_DATA.hintShop));
+  if(!G.stages)G.stages=JSON.parse(JSON.stringify(DEFAULT_DATA.stages));
+  if(!G.stages.phoneRing)G.stages.phoneRing=JSON.parse(JSON.stringify(DEFAULT_DATA.stages.phoneRing));
+  if(!G.stages.switchboard)G.stages.switchboard=JSON.parse(JSON.stringify(DEFAULT_DATA.stages.switchboard));
+  if(!G.stages.hintGate)G.stages.hintGate=JSON.parse(JSON.stringify(DEFAULT_DATA.stages.hintGate));
+  if(!G.stage2)G.stage2={};
+  if(G.stage2.threshold==null)G.stage2.threshold=70;
+  if(G.stage2.hintPrefix==null)G.stage2.hintPrefix='您購得的線索';
+  if(G.stage2.hintAnswer==null)G.stage2.hintAnswer='臺中驛';
+  /* 舊版 localStorage 可能沒有 jacks / calls → 補入預設值 */
+  if(!Array.isArray(G.jacks)||!G.jacks.length)G.jacks=JSON.parse(JSON.stringify(DEFAULT_DATA.jacks));
+  if(!Array.isArray(G.calls)||!G.calls.length)G.calls=JSON.parse(JSON.stringify(DEFAULT_DATA.calls));
+  if(!G.appear)G.appear=JSON.parse(JSON.stringify(DEFAULT_DATA.appear));
+  if(!G.dev||typeof G.dev!=='object')G.dev={show:true};
+  /* 11 章預設：缺哪一章補哪一章（不覆蓋已有內容） */
+  ['ch6','ch7','ch8','ch9','ch10','ch11'].forEach(function(k){
+    if(!Array.isArray(G[k]))G[k]=JSON.parse(JSON.stringify(DEFAULT_DATA[k]));
+  });
+  migrateAdminData();
+  renderAll();setSynced(true);
+  _refreshDevToggleBtn();
+}
+
+/* 自動遷移：把舊的 {t:'stage',id:'map'} 換成 item + hint-gate，並套用新版預設文字 */
+function _buildDefaultMemoriesAdmin(){
+  return {
+    slider1:{title:'壁龕前的六十四卦',events:[
+      {t:'narr',text:'黑暗中，景象浮起——\n還是那座壁龕，但她站的不是自己原本的位置。'},
+      {t:'narr',text:'她「看著」自己——背對她，側臉認真地對著一面光禿的牆，滔滔不絕。'},
+      {t:'narr',text:'那是雁淇記憶裡的她。\n她在對著空氣說話。'},
+      {t:'line',who:'語嫣（記憶中）',text:'乾為天，剛健不息——是天行健，君子以自強不息。'},
+      {t:'line',who:'語嫣（記憶中）',text:'坤為地，柔順承載——是厚德載物，承納萬有。'},
+      {t:'line',who:'語嫣（記憶中）',text:'震為雷，動之始——驚蟄時分，萬物甦醒。'},
+      {t:'line',who:'語嫣（記憶中）',text:'巽為風，入而無形——順勢而入，無孔不至。'},
+      {t:'line',who:'語嫣（記憶中）',text:'坎為水，重重險阻——前有深淵，後有絕壁。'},
+      {t:'line',who:'語嫣（記憶中）',text:'離為火，光明附麗——附之於物，光彩畢現。'},
+      {t:'line',who:'語嫣（記憶中）',text:'艮為山，止其所止——靜如山，不妄動。'},
+      {t:'line',who:'語嫣（記憶中）',text:'兌為澤，喜悅相和——澤潤萬物，和合而生。'},
+      {t:'narr',text:'八卦兩兩相疊，得六十四卦，每一卦都是世間的一段境遇⋯⋯'},
+      {t:'line',who:'雁淇（畫外）',text:'你知道嗎？我從來都聽不太懂，但我喜歡看你說的樣子。'},
+      {t:'narr',text:'畫面開始閃爍——像底片過曝，她的身影一閃一閃。'}
+    ]},
+    slider2:{title:'莨苕葉的所在',events:[
+      {t:'narr',text:'又是雁淇的視角。這次她們站在車站正門前。'},
+      {t:'narr',text:'雁淇仰頭看著樑柱頂端，眼睛閃閃發亮。'},
+      {t:'line',who:'雁淇',text:'語嫣你看！這個！'},
+      {t:'line',who:'雁淇',text:'這叫「莨苕葉」——希臘科林斯柱式的代表紋飾！'},
+      {t:'line',who:'雁淇',text:'古希臘建築師在墓上發現它的葉片捲曲很美，從此把它刻進柱頭——\n它是石頭裡長出來的草。'},
+      {t:'line',who:'雁淇',text:'它從希臘傳到羅馬、傳到歐洲，再從歐洲傳到日本——\n最後跟著辰野金吾來到台中。'},
+      {t:'line',who:'雁淇',text:'你看那葉緣的鋸齒、捲曲的紋路，跟自然界的莨苕葉一模一樣。'},
+      {t:'line',who:'雁淇',text:'在這座車站的門柱、簷下、山牆，都藏著它的影子⋯⋯\n要找的話，記得抬頭。'},
+      {t:'narr',text:'現實中的語嫣只是望著她，靜靜聽。'},
+      {t:'line',who:'雁淇',text:'⋯⋯你又沒在認真聽。'},
+      {t:'line',who:'雁淇',text:'沒關係，只要你在就好。'},
+      {t:'narr',text:'畫面開始閃爍——'}
+    ]},
+    slider3:{title:'山線通車那年',events:[
+      {t:'narr',text:'火車緩緩穿過山洞，車廂內的光暗了一瞬。\n雁淇靠在車窗邊，眼睛貼著玻璃。'},
+      {t:'line',who:'雁淇',text:'語嫣，你來看！這就是「山線」！'},
+      {t:'narr',text:'她興奮地把她拉到窗邊，手指頭抵著玻璃。'},
+      {t:'line',who:'雁淇',text:'縱貫線最早只有一條軌道，1908 年 4 月 20 日全線通車——\n那一天，台灣第一次南北一日達。'},
+      {t:'line',who:'雁淇',text:'從那以後，台北到高雄就只要十一個小時。\n之前用走的、用船的，要好幾天。'},
+      {t:'line',who:'雁淇',text:'通車典禮就在台中車站辦的——\n後藤新平、佐久間總督，上千個官員都站在這個月台。'},
+      {t:'line',who:'雁淇',text:'但山線坡度大、彎道多，運能不夠用——\n所以 1922 年又另闢一條沿海的「海線」來分流。'},
+      {t:'line',who:'雁淇',text:'我們現在過的這個八號隧道——\n當年是台灣第一長的山洞喔！'},
+      {t:'line',who:'雁淇',text:'從北邊算起，山線經過桃園、新竹、苗栗、銅鑼、三義、后里、豐原⋯⋯\n再到台中。'},
+      {t:'narr',text:'她說得手舞足蹈，眼睛裡映著山林的綠。\n光從隧道盡頭灑進來，照在她臉上。'},
+      {t:'line',who:'雁淇',text:'語嫣，以後我們搭遍每一條線，好不好？'},
+      {t:'line',who:'雁淇',text:'山線、海線、屏東線、宜蘭線、花東線——\n每一站都下車吃一碗東西。'},
+      {t:'narr',text:'她回頭看著她，笑得像個小孩。'},
+      {t:'narr',text:'畫面忽然開始閃爍——'}
+    ]},
+    slider4:{title:'海線的鹹風',events:[
+      {t:'narr',text:'又是火車，這次窗外是一片海。\n陽光把海面切成細碎的白光。'},
+      {t:'narr',text:'雁淇把頭探出車窗，被海風吹得頭髮亂飛。'},
+      {t:'line',who:'雁淇',text:'語嫣！這條就是海線！'},
+      {t:'line',who:'雁淇',text:'比山線晚了十四年，1922 年才開通——\n當年是為了分擔山線的貨運壓力而蓋的。'},
+      {t:'line',who:'雁淇',text:'山線坡度太陡，蒸汽火車要爬要花很多煤——\n海線沿著海岸線繞，比較平，就拿來跑貨運。'},
+      {t:'line',who:'雁淇',text:'沿線經過大甲、清水、沙鹿、通霄、苑裡——\n都是沿海的小鎮，靠海吃海。'},
+      {t:'line',who:'雁淇',text:'山線跟海線會在「彰化」會合。\n往北分流，往南合流——像兩條手臂在那裡握住。'},
+      {t:'line',who:'雁淇',text:'這幾個沿海小站，月台都比較窄。\n你看那邊——大甲站只有一個月台。'},
+      {t:'line',who:'雁淇',text:'以前去外婆家，海線跟山線可以二選一，\n我每次都選海線——因為可以看到海。'},
+      {t:'narr',text:'她回頭看著她，鼻尖被風吹紅了。\n海鹽的味道從她衣領散出來。'},
+      {t:'line',who:'雁淇',text:'語嫣，海風的味道你要記住喔。'},
+      {t:'line',who:'雁淇',text:'以後忘了——\n就回來這條線聞一聞。'},
+      {t:'narr',text:'她伸手抓住她的手腕，像怕她下一秒就會消失。'},
+      {t:'narr',text:'畫面忽然開始閃爍——'}
+    ]},
+    slider5:{title:'雁淇的花磚講義',events:[
+      {t:'narr',text:'圖書館的午後。\n雁淇翻開一本厚厚的鄉土圖冊，把書推到語嫣面前。'},
+      {t:'line',who:'雁淇',text:'語嫣你看，這就是花磚的製作流程！'},
+      {t:'line',who:'雁淇',text:'第一步要先挖土——\n黏土最好取自河邊或山腳，越細越好。'},
+      {t:'line',who:'雁淇',text:'第二步加水揉成泥，\n揉到不黏手、又不會散，才合用。'},
+      {t:'line',who:'雁淇',text:'第三步把泥放進刻好紋路的木模，\n用木錘敲打讓花紋深深印進去。'},
+      {t:'line',who:'雁淇',text:'敲三下、五下、八下都行，\n最重要的是花紋要清楚。'},
+      {t:'line',who:'雁淇',text:'然後拿刮板把多餘的泥刮掉，脫模——\n花磚就成形了。'},
+      {t:'line',who:'雁淇',text:'你知道台中車站正門山牆上那些是什麼花嗎？'},
+      {t:'line',who:'語嫣',text:'⋯⋯香蕉？我看到一根長長的東西。'},
+      {t:'line',who:'雁淇',text:'答對了！還有蓮霧、石榴、鳳梨——\n都是當時臺灣的代表物產。'},
+      {t:'line',who:'雁淇',text:'日本人請了個叫辰野金吾的英國派建築師來設計這座車站，\n紅磚配白石、再加黑瓦——這套就叫「辰野式樣」。'},
+      {t:'narr',text:'她說得手舞足蹈，書頁的影子隨著她的手起伏。'},
+      {t:'line',who:'雁淇',text:'語嫣，黏土是有味道的——\n是泥土跟陽光的味道。'},
+      {t:'narr',text:'畫面開始閃爍——'}
+    ]},
+    slider6:{title:'鐘塔下的雨',events:[
+      {t:'narr',text:'一個下雨的午後。\n她們翹課，躲到車站鐘塔下避雨。'},
+      {t:'narr',text:'雨水從屋簷滴下，敲在洗石子地板上叮叮咚咚。\n齒輪咬合的聲音蓋過了雨聲，整個鐘塔像一顆心臟。'},
+      {t:'line',who:'雁淇',text:'語嫣，你知道嗎？\n台中車站的鐘是日本製的，跟東京車站同款。'},
+      {t:'line',who:'雁淇',text:'全機械結構，每天要上一次發條才會走。\n停了，就要派人爬上去重新上鏈。'},
+      {t:'line',who:'雁淇',text:'指針後面那塊洗石子鐘面上面，\n刻著小小的羅馬數字——是工匠一筆一筆手雕的。'},
+      {t:'line',who:'雁淇',text:'從 1917 到現在，這座鐘走了一百多年——\n比這座島上任何人都老。'},
+      {t:'line',who:'雁淇',text:'你聽——'},
+      {t:'narr',text:'她安靜下來。\n齒輪的咬合聲清楚得像呼吸。'},
+      {t:'line',who:'雁淇',text:'每六十秒一響——這就是這座城的心跳。'},
+      {t:'narr',text:'她仰頭看著大鐘，雨水順著屋簷滴下來，\n滴在她睫毛上。'},
+      {t:'line',who:'雁淇',text:'語嫣，如果有一天我消失了——\n記得來這裡找我。'},
+      {t:'line',who:'雁淇',text:'鐘還會繼續走。\n那就是我還在。'},
+      {t:'narr',text:'她伸出手，掌心朝上接雨。'},
+      {t:'narr',text:'畫面忽然開始閃爍——'}
+    ]},
+    slider7:{title:'月台的車掌哨',events:[
+      {t:'narr',text:'月台上人擠人。她努力踮腳，想找到雁淇的身影。\n火車進站，蒸汽噴湧而出。'},
+      {t:'line',who:'雁淇（遠處）',text:'語嫣！這邊！'},
+      {t:'narr',text:'她順著聲音望去，雁淇站在第二月台，\n手裡揮著一隻黃銅哨子。'},
+      {t:'line',who:'雁淇',text:'車掌叔叔送我的！\n他說每一次火車要開，他都要吹這個哨子！'},
+      {t:'line',who:'雁淇',text:'短哨一聲——提醒上車！\n長哨一聲——表示要關門！\n三聲——表示要進站！'},
+      {t:'narr',text:'她說著，嗶——地吹了一聲。'},
+      {t:'narr',text:'站務員在遠處吹了相應的回哨，\n火車緩緩起動。'},
+      {t:'line',who:'雁淇',text:'語嫣你看，這就是月台的對話。'},
+      {t:'narr',text:'火車漸行漸遠，雁淇站在月台中央，\n黃銅哨子還夾在指間發亮。'},
+      {t:'narr',text:'畫面開始閃爍——'}
+    ]},
+    slider8:{title:'彰化的票根',events:[
+      {t:'narr',text:'高三畢業那年的夏天。\n雁淇把一張車票塞給她。'},
+      {t:'line',who:'雁淇',text:'我下個月要去南部念大學了。'},
+      {t:'line',who:'雁淇',text:'這張是我的票根——我把它送給你，當作信物。'},
+      {t:'narr',text:'票面寫著 — 「臺中 → 彰化」，\n發車時間，跟雁淇離開那天一致。'},
+      {t:'line',who:'雁淇',text:'以後我要回來，就憑這張票根認你。'},
+      {t:'line',who:'語嫣',text:'為什麼是彰化？'},
+      {t:'line',who:'雁淇',text:'因為彰化是我們以前去外婆家會經過的最後一站。\n山線跟海線在那裡會合。'},
+      {t:'line',who:'雁淇',text:'我想——每次經過那一站，都會想起你。'},
+      {t:'narr',text:'她翻過票根，背面用鉛筆寫著一行小字——'},
+      {t:'narr',text:'「等我回來。」'},
+      {t:'narr',text:'畫面開始閃爍——'}
+    ]}
+  };
+}
+function migrateAdminData(){
+  var changed=false;
+  if(!G._migV2){
+    ['ch1','ch2','ch3','ch4','ch5'].forEach(function(key){
+      if(!Array.isArray(G[key]))return;
+      for(var i=0;i<G[key].length;i++){
+        var ev=G[key][i];
+        if(ev&&ev.t==='stage'&&ev.id==='map'){
+          G[key].splice(i,1,
+            {t:'item',id:'map',name:'地圖',icon:'🗺',asset:'map'},
+            {t:'stage',id:'hint-gate'}
+          );
+          changed=true;i++;
+        }
+      }
+    });
+    G._migV2=true;changed=true;
+  }
+  /* v3：若提示商城文字仍是舊版短句，替換為新版謎語 */
+  if(!G._migV3){
+    if(!G.hintShop)G.hintShop={};
+    if(!G.hintShop.hintText||G.hintShop.hintText.indexOf('拍下你認為的正確位置')>=0){
+      G.hintShop.hintText=DEFAULT_DATA.hintShop.hintText;
+      changed=true;
+    }
+    G._migV3=true;changed=true;
+  }
+  /* v4：補上 bagua 預設咒文、第三關 levels 設定、ch3 預設事件 */
+  if(!G._migV4){
+    if(!G.bagua||!Array.isArray(G.bagua.incantations)||!G.bagua.incantations.length){
+      G.bagua=JSON.parse(JSON.stringify(DEFAULT_DATA.bagua));
+    }
+    if(!Array.isArray(G.levels)||G.levels.length<3){
+      G.levels=JSON.parse(JSON.stringify(DEFAULT_DATA.levels));
+    }
+    /* ch3 若是預設佔位（"待填"），覆蓋為新版壁龕＋八卦事件 */
+    if(Array.isArray(G.ch3)){
+      var hasNiche=G.ch3.some(function(ev){return ev&&ev.t==='stage'&&(ev.id==='niche'||ev.id==='bagua');});
+      var isPlaceholder=G.ch3.length<=3&&G.ch3.some(function(ev){return ev&&ev.main==='（待填）';});
+      if(!hasNiche&&isPlaceholder){
+        G.ch3=JSON.parse(JSON.stringify(DEFAULT_DATA.ch3));
+      }
+    }
+    G._migV4=true;changed=true;
+  }
+  /* v6：ch3 通關之後沒劇情就自動補上後續（語嫣低語、第四章卡） */
+  if(!G._migV6){
+    if(Array.isArray(G.ch3)){
+      var bagIdx=-1;
+      G.ch3.forEach(function(ev,i){if(ev&&ev.t==='stage'&&ev.id==='bagua'&&bagIdx===-1)bagIdx=i;});
+      if(bagIdx>=0){
+        var after=G.ch3.slice(bagIdx+1);
+        var hasContinuation=after.some(function(ev){return ev&&(ev.t==='line'||ev.t==='chapter');});
+        if(!hasContinuation){
+          G.ch3=G.ch3.slice(0,bagIdx+1).concat(JSON.parse(JSON.stringify(DEFAULT_DATA.ch3.slice(2))));
+        }
+      }
+    }
+    G._migV6=true;changed=true;
+  }
+  /* v7：確保關卡列表有 bagua 類型（壁龕／八卦封印關），不覆蓋既有自訂名稱 */
+  if(!G._migV7){
+    if(!Array.isArray(G.levels))G.levels=[];
+    var hasSwitchboard=G.levels.some(function(lv){return lv&&lv.type==='switchboard';});
+    var hasHintGate  =G.levels.some(function(lv){return lv&&lv.type==='hint-gate';});
+    var hasBagua     =G.levels.some(function(lv){return lv&&lv.type==='bagua';});
+    if(!hasSwitchboard)G.levels.unshift({id:'lv1',name:'關卡一',type:'switchboard'});
+    if(!hasHintGate){
+      /* 插在 switchboard 之後 */
+      var sIdx=G.levels.findIndex(function(lv){return lv.type==='switchboard';});
+      G.levels.splice(sIdx+1,0,{id:'lv'+(G.levels.length+1),name:'關卡二',type:'hint-gate'});
+    }
+    if(!hasBagua){
+      G.levels.push({id:'lv'+(G.levels.length+1),name:'關卡三',type:'bagua'});
+    }
+    G._migV7=true;changed=true;
+  }
+  /* v8：補上 puzzle 關卡四 + ch4 預設拼圖事件 */
+  if(!G._migV8){
+    if(!Array.isArray(G.levels))G.levels=[];
+    var hasPuzzle=G.levels.some(function(lv){return lv&&lv.type==='puzzle';});
+    if(!hasPuzzle){
+      G.levels.push({id:'lv'+(G.levels.length+1),name:'關卡四',type:'puzzle'});
+    }
+    if(Array.isArray(G.ch4)){
+      var hasPuzzleStage=G.ch4.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='puzzle';});
+      var isPlaceholder=G.ch4.length<=3&&G.ch4.some(function(ev){return ev&&(ev.main==='（待填）'||ev.text==='（旁白）');});
+      if(!hasPuzzleStage&&isPlaceholder){
+        G.ch4=JSON.parse(JSON.stringify(DEFAULT_DATA.ch4));
+      }
+    }
+    G._migV8=true;changed=true;
+  }
+  /* v9：強制四個固定關卡類型都存在（switchboard / hint-gate / bagua / puzzle）。
+     不覆蓋既有自訂名稱與順序，純粹補缺。 */
+  if(!G._migV9){
+    if(!Array.isArray(G.levels))G.levels=[];
+    var defs=[
+      {type:'switchboard',name:'關卡一'},
+      {type:'hint-gate', name:'關卡二'},
+      {type:'bagua',     name:'關卡三'},
+      {type:'puzzle',    name:'關卡四'}
+    ];
+    defs.forEach(function(def){
+      if(!G.levels.some(function(lv){return lv&&lv.type===def.type;})){
+        G.levels.push({id:'lv'+(G.levels.length+1),name:def.name,type:def.type});
+      }
+    });
+    G._migV9=true;changed=true;
+  }
+  /* v10：拼圖關後續劇情（滑塊二 + 模糊合照感想 + 下一關線索） */
+  if(!G._migV10){
+    if(Array.isArray(G.ch4)){
+      var pIdx=-1;
+      G.ch4.forEach(function(ev,i){if(ev&&ev.t==='stage'&&ev.id==='puzzle'&&pIdx===-1)pIdx=i;});
+      if(pIdx>=0){
+        var hasSlider2=G.ch4.some(function(ev){return ev&&ev.t==='item'&&ev.id==='slider2';});
+        if(!hasSlider2){
+          /* 移除 puzzle 之後現有的 narr 並補上新版（保留 puzzle 之前內容） */
+          G.ch4=G.ch4.slice(0,pIdx+1).concat([
+            {t:'line',who:'語嫣',text:'這是……我們的合照？'},
+            {t:'narr',text:'她認不清照片裡那個男孩的臉——只是一片模糊的光影。\n但她就是知道，那是他們的合照。'},
+            {t:'narr',text:'拼圖背面刻著一段細小的字：\n「下一處，月台第三盞燈下。」'},
+            {t:'narr',text:'她把滑塊收進口袋，朝走廊深處走去。'}
+          ]);
+        }
+      }
+    }
+    G._migV10=true;changed=true;
+  }
+  /* v11：補上 phylock 關卡（電磁鎖）+ G.lock 預設值 + ch5 預設事件 */
+  if(!G._migV11){
+    if(!Array.isArray(G.levels))G.levels=[];
+    var hasPhylock=G.levels.some(function(lv){return lv&&lv.type==='phylock';});
+    if(!hasPhylock){
+      G.levels.push({id:'lv'+(G.levels.length+1),name:'關卡五',type:'phylock'});
+    }
+    if(!G.lock){
+      G.lock={
+        password:'1908',
+        endpoint:'http://192.168.4.1',
+        useHardware:true,
+        hint:'請輸入解鎖密碼',
+        okText:'電磁鎖已開啟',
+        wrongText:'密碼錯誤',
+        offlineText:'無法連線到電子鎖（離線模式繼續劇情）'
+      };
+    }
+    if(Array.isArray(G.ch5)){
+      var hasPhylockEv=G.ch5.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='phylock';});
+      var isPlaceholder=G.ch5.length<=3&&G.ch5.some(function(ev){return ev&&ev.main==='（待填）';});
+      if(!hasPhylockEv&&isPlaceholder){
+        G.ch5=[
+          {t:'chapter',jp:'第五章',main:'最後一道鎖',sub:'歸途之徑'},
+          {t:'narr',text:'語嫣循著線索抵達最後一個房間。\n（華容道關卡尚待開發。）'},
+          {t:'narr',text:'盒子內側浮出一行細小的字：「請輸入鑰匙密碼」。'},
+          {t:'stage',id:'phylock'},
+          {t:'narr',text:'喀的一聲，盒子鎖開了。\n裡面靜靜躺著一枚老舊的火車徽章。'},
+          {t:'narr',text:'（後續結局劇情待續……）'}
+        ];
+      }
+    }
+    G._migV11=true;changed=true;
+  }
+  /* v12：保險 — 確保 lv4(puzzle) 與 lv5(phylock) 都存在（過去 v8/v11 旗標可能已設但未加成功） */
+  if(!G._migV12){
+    if(!Array.isArray(G.levels))G.levels=[];
+    if(!G.levels.some(function(lv){return lv&&lv.type==='puzzle';})){
+      G.levels.push({id:'lv'+(G.levels.length+1),name:'關卡四',type:'puzzle'});
+    }
+    if(!G.levels.some(function(lv){return lv&&lv.type==='phylock';})){
+      G.levels.push({id:'lv'+(G.levels.length+1),name:'關卡五',type:'phylock'});
+    }
+    G._migV12=true;changed=true;
+  }
+  /* v13：保險再一次 — 確保 phylock + G.lock 預設都到位（先前 v11/v12 旗標可能已設但因順序問題未生效） */
+  if(!G._migV13){
+    if(!Array.isArray(G.levels))G.levels=[];
+    ['switchboard','hint-gate','bagua','puzzle','phylock'].forEach(function(t){
+      if(!G.levels.some(function(lv){return lv&&lv.type===t;})){
+        var idx=G.levels.length+1;
+        G.levels.push({id:'lv'+idx,name:'關卡'+toCN(idx),type:t});
+      }
+    });
+    if(!G.lock){
+      G.lock={password:'1908',endpoint:'http://192.168.4.1',useHardware:true,
+        hint:'請輸入解鎖密碼',okText:'電磁鎖已開啟',wrongText:'密碼錯誤',
+        offlineText:'無法連線到電子鎖（離線模式繼續劇情）'};
+    }
+    G._migV13=true;changed=true;
+  }
+  /* v14：重新組章 — 把 ch3 的壁龕＋八卦完整序列搬到 ch2 結尾；ch3 改為「接到拼圖關卡」的劇情 */
+  if(!G._migV14){
+    if(!Array.isArray(G.ch2))G.ch2=[];
+    if(!Array.isArray(G.ch3))G.ch3=[];
+    var ch2HasBagua=G.ch2.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='bagua';});
+    var ch3HasBagua=G.ch3.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='bagua';});
+    /* (1) 若 ch2 還沒有八卦序列、ch3 有 → 把 ch3 整個搬到 ch2 末尾 */
+    if(!ch2HasBagua&&ch3HasBagua){
+      G.ch2=G.ch2.concat(G.ch3);
+      G.ch3=[];
+    }
+    /* (2) 若 ch2 仍然沒有完整的八卦序列（極端情況：兩邊都沒有），手動補上 */
+    if(!G.ch2.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='bagua';})){
+      var hgIdx=-1;
+      G.ch2.forEach(function(ev,i){if(ev&&ev.t==='stage'&&ev.id==='hint-gate'&&hgIdx===-1)hgIdx=i;});
+      var append=[
+        {t:'stage',id:'niche'},
+        {t:'stage',id:'bagua'},
+        {t:'narr',text:'封印散去，水盆深處浮出一塊滑塊。\n那塊石頭刻著一道指引——通往下一處的線索。'},
+        {t:'line',who:'語嫣',text:'……雁淇？'},
+        {t:'narr',text:'她不知為何脫口說出那兩個字，但話一出口，胸口便一陣發緊，\n像是從很遠的地方喚回了什麼。'},
+        {t:'narr',text:'她踏出壁龕，廊道盡頭似乎還有未走完的路。'}
+      ];
+      if(hgIdx>=0){
+        G.ch2=G.ch2.slice(0,hgIdx+1).concat(append,G.ch2.slice(hgIdx+1));
+      }else{
+        G.ch2=G.ch2.concat(append);
+      }
+    }
+    /* (3) ch3 重寫為「劇情 → 拼圖關卡 → 收尾」；若有玩家自編就保留 */
+    var ch3IsPlaceholder=G.ch3.length===0||
+      (G.ch3.length<=3&&G.ch3.some(function(ev){return ev&&ev.main==='（待填）';}));
+    var ch3HasPuzzle=G.ch3.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='puzzle';});
+    if(ch3IsPlaceholder||!ch3HasPuzzle){
+      /* 直接從 DEFAULT_DATA.ch3 拷貝（含 puzzle stage） */
+      G.ch3=JSON.parse(JSON.stringify(DEFAULT_DATA.ch3));
+      /* 若 ch4 還有 puzzle 後續旁白，搬到 ch3 末尾 */
+      if(Array.isArray(G.ch4)){
+        var ch4PuzIdx=-1;
+        G.ch4.forEach(function(ev,i){if(ev&&ev.t==='stage'&&ev.id==='puzzle'&&ch4PuzIdx===-1)ch4PuzIdx=i;});
+        if(ch4PuzIdx>=0){
+          var ch4Tail=G.ch4.slice(ch4PuzIdx+1).filter(function(ev){
+            return !(ev&&ev.t==='chapter');
+          });
+          if(ch4Tail.length){G.ch3=G.ch3.concat(ch4Tail);}
+        }
+      }
+      /* ch4 重設為佔位 */
+      G.ch4=[
+        {t:'chapter',jp:'第四章',main:'（待填）',sub:''},
+        {t:'narr',text:'（旁白）'},
+        {t:'line',who:'語嫣',text:'（對白）'}
+      ];
+    }
+    G._migV14=true;changed=true;
+  }
+  /* v15：去重 — niche/bagua 應該只在 ch2 出現一次；ch3 裡若還有就刪掉（清掉舊版遷移的殘留） */
+  if(!G._migV15){
+    if(Array.isArray(G.ch3)){
+      G.ch3=G.ch3.filter(function(ev){
+        return !(ev&&ev.t==='stage'&&(ev.id==='niche'||ev.id==='bagua'));
+      });
+      var ch3HasPuzzle=G.ch3.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='puzzle';});
+      if(!ch3HasPuzzle||G.ch3.length<3){
+        G.ch3=JSON.parse(JSON.stringify(DEFAULT_DATA.ch3));
+      }
+    }
+    if(Array.isArray(G.ch2)){
+      /* 同一型 stage 只保留第一個 */
+      var seenNiche=false,seenBagua=false;
+      G.ch2=G.ch2.filter(function(ev){
+        if(ev&&ev.t==='stage'&&ev.id==='niche'){
+          if(seenNiche)return false;seenNiche=true;return true;
+        }
+        if(ev&&ev.t==='stage'&&ev.id==='bagua'){
+          if(seenBagua)return false;seenBagua=true;return true;
+        }
+        return true;
+      });
+    }
+    G._migV15=true;changed=true;
+  }
+  /* v16：拓展為 11 章。把舊 ch5 的 phylock 搬到 ch10；ch4–9 補上 slider3–8 placeholder；ch10–11 補上結局段。 */
+  if(!G._migV16){
+    /* (1) 若 ch5 還有 stage:phylock（舊版預設），把那段搬到 ch10 末尾 */
+    if(Array.isArray(G.ch5)){
+      var hasPhylockInCh5=G.ch5.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='phylock';});
+      if(hasPhylockInCh5){
+        G.ch10=Array.isArray(G.ch10)?G.ch10.concat(G.ch5):G.ch5.slice();
+        G.ch5=[]; /* 清空，下方再補上預設 ch5 */
+      }
+    }
+    /* (2) 缺章節就補上預設 */
+    ['ch4','ch5','ch6','ch7','ch8','ch9','ch10','ch11'].forEach(function(key){
+      if(!Array.isArray(G[key])||G[key].length===0||
+         (G[key].length<=3&&G[key].some(function(ev){return ev&&ev.main==='（待填）';}))){
+        G[key]=JSON.parse(JSON.stringify(DEFAULT_DATA[key]));
+      }
+    });
+    G._migV16=true;changed=true;
+  }
+  /* v17：歸納關 — 補上 G.sortbins 預設；ch4 若仍是 slider3 占位則替換為 sortbins 流程 */
+  if(!G._migV17){
+    if(!G.sortbins){
+      G.sortbins=JSON.parse(JSON.stringify(_DEFAULT_SORTBINS_ADMIN));
+    }
+    if(Array.isArray(G.ch4)){
+      var hasSortbins=G.ch4.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='sortbins';});
+      var ch4IsPH=G.ch4.length<=4&&G.ch4.some(function(ev){
+        return ev&&((ev.t==='chapter'&&(ev.main==='（待填）'||ev.main==='執念之三'))||
+                    (ev.t==='narr'&&(ev.text==='（旁白）'||/這裡寫第三個執念/.test(ev.text||''))));
+      });
+      if(!hasSortbins&&ch4IsPH){
+        G.ch4=[
+          {t:'chapter',jp:'第四章',main:'執念之三',sub:'山海之分'},
+          {t:'narr',text:'走出壁龕，語嫣抬頭看見正門廣場上的指南針地板。\n上面雕著縱貫線山線與海線的車站名，但部分名字已經磨損。'},
+          {t:'narr',text:'地板紋路間散落著一些紙條，每張紙條寫著一個車站。\n她蹲下來想——如果能把這些紙條歸到對應的線上⋯⋯'},
+          {t:'stage',id:'sortbins'},
+          {t:'narr',text:'最後一張紙條落到正確的位置上，地板浮起一道光紋——\n光紋盡頭浮出一塊滑塊。'},
+          {t:'item',id:'slider3',name:'滑塊・三',icon:'🪨',asset:'slider3'}
+        ];
+      }
+    }
+    G._migV17=true;changed=true;
+  }
+  /* v18：歸納關升級為班次→線 + 線→站名 兩小關，給 slider3+slider4；ch5-9 滑塊順移 */
+  if(!G._migV18){
+    /* (1) sortbins 升級到 schedule 格式 */
+    if(!G.sortbins||!Array.isArray(G.sortbins.schedule)||!G.sortbins.schedule.length){
+      G.sortbins=JSON.parse(JSON.stringify(_DEFAULT_SORTBINS_ADMIN));
+    }
+    /* (2) 新增 sortbins2 預設 */
+    if(!G.sortbins2){
+      G.sortbins2=JSON.parse(JSON.stringify(_DEFAULT_SORTBINS2_ADMIN));
+    }
+    /* (3) ch4 改為兩小關串接 + slider3 + slider4，但只在 ch4 仍是 v17 sortbins 單關時換 */
+    if(Array.isArray(G.ch4)){
+      var ch4Looksv17=G.ch4.length<=6&&
+        G.ch4.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='sortbins';})&&
+        !G.ch4.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='sortbins2';});
+      if(ch4Looksv17){
+        G.ch4=[
+          {t:'chapter',jp:'第四章',main:'執念之三',sub:'山海之分'},
+          {t:'narr',text:'走出壁龕，語嫣抬頭看見正門廣場上的指南針地板，山線與海線的指示交錯成放射狀的紋路。'},
+          {t:'narr',text:'地板紋路間散落著一些紙條，每一張上面都寫著一個班次號碼，被風吹得四散。'},
+          {t:'narr',text:'她翻出當年的列車時刻表——只要照著停靠站，就能把這些班次歸入正確的線路。'},
+          {t:'stage',id:'sortbins'},
+          {t:'narr',text:'最後一張班次紙條落到正確的位置上，地板紋路微微亮起。'},
+          {t:'item',id:'slider3',name:'滑塊・三',icon:'🪨',asset:'slider3'},
+          {t:'narr',text:'光紋未散，廣場另一側又浮出一張新的紙——這次只剩兩張：「山線」與「海線」。'},
+          {t:'narr',text:'四周的地名牌雜亂浮動，等待被分發到正確的線路。'},
+          {t:'stage',id:'sortbins2'},
+          {t:'narr',text:'最後一塊地名落定，山與海各歸其所，掌心又多了一塊滑塊。'},
+          {t:'item',id:'slider4',name:'滑塊・四',icon:'🪨',asset:'slider4'}
+        ];
+      }
+    }
+    /* (4) ch5-ch8 滑塊順移一號（限 v16 預設未改才動） */
+    var V16PH={
+      ch5:{from:'slider4',main:'執念之四',toId:'slider5',toName:'滑塊・五',newText:'（第四個執念劇情，解開後贈滑塊・五）'},
+      ch6:{from:'slider5',main:'執念之五',toId:'slider6',toName:'滑塊・六',newText:'（第五個執念劇情，解開後贈滑塊・六）'},
+      ch7:{from:'slider6',main:'執念之六',toId:'slider7',toName:'滑塊・七',newText:'（第六個執念劇情，解開後贈滑塊・七）'},
+      ch8:{from:'slider7',main:'執念之七',toId:'slider8',toName:'滑塊・八',newText:'（第七個執念劇情，解開後贈滑塊・八）'}
+    };
+    Object.keys(V16PH).forEach(function(k){
+      if(!Array.isArray(G[k])||G[k].length!==3)return;
+      var ev0=G[k][0],ev2=G[k][2];
+      if(!ev0||ev0.t!=='chapter'||ev0.main!==V16PH[k].main)return;
+      if(!ev2||ev2.t!=='item'||ev2.id!==V16PH[k].from)return;
+      G[k]=[
+        ev0,
+        {t:'narr',text:V16PH[k].newText},
+        {t:'item',id:V16PH[k].toId,name:V16PH[k].toName,icon:'🪨',asset:V16PH[k].toId}
+      ];
+    });
+    /* ch9（原 slider8 placeholder）→ 改為純劇情過場 */
+    if(Array.isArray(G.ch9)&&G.ch9.length===3){
+      var c9_0=G.ch9[0],c9_2=G.ch9[2];
+      if(c9_0&&c9_0.t==='chapter'&&c9_0.main==='執念之八'&&
+         c9_2&&c9_2.t==='item'&&c9_2.id==='slider8'){
+        G.ch9=[
+          c9_0,
+          {t:'narr',text:'（第八段劇情：八塊滑塊已齊，這裡寫過渡橋段，準備走向最後一道機關。）'}
+        ];
+      }
+    }
+    G._migV18=true;changed=true;
+  }
+  /* v19：歸納關 A/B 上限改 2，重置式「全部歸零」 */
+  if(!G._migV19){
+    if(G.sortbins){
+      if(!G.sortbins.maxErrors||G.sortbins.maxErrors===5)G.sortbins.maxErrors=2;
+      if(typeof G.sortbins.help==='string'&&G.sortbins.help.indexOf('錯五次')>=0){
+        G.sortbins.help=G.sortbins.help.replace(/錯五次[^。\n]*[。\n]?/,'錯兩次後整關重置：所有班次（含已歸位的）回到池子重新洗牌。\n');
+      }
+      if(typeof G.sortbins.help==='string'&&G.sortbins.help.indexOf('整關重置')<0){
+        G.sortbins.help+='\n錯兩次後整關重置：所有班次（含已歸位的）回到池子重新洗牌。';
+      }
+    }
+    if(G.sortbins2){
+      if(!G.sortbins2.maxErrors||G.sortbins2.maxErrors===5)G.sortbins2.maxErrors=2;
+      if(typeof G.sortbins2.help==='string'&&G.sortbins2.help.indexOf('錯五次')>=0){
+        G.sortbins2.help=G.sortbins2.help.replace(/錯五次[^。\n]*[。\n]?/,'錯兩次後整關重置：所有站名（含已消失的）會全部復原並重新打散位置。\n');
+      }
+    }
+    G._migV19=true;changed=true;
+  }
+  /* v20：levels 清單補上 sortbins / sortbins2 兩關卡（若還沒有的話） */
+  if(!G._migV20){
+    if(!Array.isArray(G.levels))G.levels=[];
+    var hasSortbins =G.levels.some(function(lv){return lv&&lv.type==='sortbins';});
+    var hasSortbins2=G.levels.some(function(lv){return lv&&lv.type==='sortbins2';});
+    /* 找 phylock 位置，把新關卡塞在它之前；找不到就 push 到最後 */
+    var phyIdx=G.levels.findIndex(function(lv){return lv&&lv.type==='phylock';});
+    var insertAt=(phyIdx>=0)?phyIdx:G.levels.length;
+    if(!hasSortbins){
+      G.levels.splice(insertAt,0,{id:'lv-sortbins',name:'關卡四・歸納A',type:'sortbins'});
+      insertAt++;
+    }
+    if(!hasSortbins2){
+      G.levels.splice(insertAt,0,{id:'lv-sortbins2',name:'關卡四・歸納B',type:'sortbins2'});
+    }
+    G._migV20=true;changed=true;
+  }
+  /* v21：開模印花關 — 補上 G.brickmold 預設、levels 多一個分頁、ch5 改為 brickmold 流程 */
+  if(!G._migV21){
+    if(!G.brickmold){
+      G.brickmold=JSON.parse(JSON.stringify(_DEFAULT_BRICKMOLD_ADMIN));
+    }
+    if(!Array.isArray(G.levels))G.levels=[];
+    var hasBrickmold=G.levels.some(function(lv){return lv&&lv.type==='brickmold';});
+    if(!hasBrickmold){
+      var phyIdxB=G.levels.findIndex(function(lv){return lv&&lv.type==='phylock';});
+      var puzIdxB=G.levels.findIndex(function(lv){return lv&&lv.type==='puzzle';});
+      var insertB=(puzIdxB>=0)?puzIdxB:((phyIdxB>=0)?phyIdxB:G.levels.length);
+      G.levels.splice(insertB,0,{id:'lv-brickmold',name:'關卡五・開模印花',type:'brickmold'});
+    }
+    /* ch5 仍是 v18 placeholder（執念之四 + slider5 占位）→ 改為開模印花流程 */
+    if(Array.isArray(G.ch5)&&G.ch5.length<=3){
+      var c5_0=G.ch5[0],c5_2=G.ch5[G.ch5.length-1];
+      var isPHc5=(c5_0&&c5_0.t==='chapter'&&c5_0.main==='執念之四')&&
+                 (c5_2&&c5_2.t==='item'&&c5_2.id==='slider5');
+      var hasBrickStage=G.ch5.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='brickmold';});
+      if(isPHc5&&!hasBrickStage){
+        G.ch5=[
+          {t:'chapter',jp:'第五章',main:'執念之四',sub:'印模的記憶'},
+          {t:'narr',text:'長廊轉角，紅磚牆斑駁。語嫣指尖拂過時，感到一處淺淺的凹痕。'},
+          {t:'narr',text:'凹痕的形狀像一朵花磚的浮雕，旁邊的木箱裡靜靜放著黏土、印模和木錘——\n是開模印花的工具。'},
+          {t:'line',who:'語嫣',text:'雁淇以前讀過花磚的書⋯⋯她說，把熱黏土壓進模子裡時，像把回憶一起印了下去。'},
+          {t:'stage',id:'brickmold'},
+          {t:'narr',text:'花磚滑入凹痕的瞬間，磚牆深處傳來一聲輕響，像有什麼鬆開了。\n掌心又落入一塊滑塊。'},
+          {t:'item',id:'slider5',name:'滑塊・五',icon:'🪨',asset:'slider5'}
+        ];
+      }
+    }
+    G._migV21=true;changed=true;
+  }
+  /* v22：brickmold 改沙盒式 — 升級 help/title 文案 */
+  if(!G._migV22){
+    if(G.brickmold){
+      if(typeof G.brickmold.help==='string'&&
+         (G.brickmold.help.indexOf('依製程順序')>=0||G.brickmold.help.indexOf('①取黏土')>=0)){
+        G.brickmold.help=_DEFAULT_BRICKMOLD_ADMIN.help;
+      }
+      if(G.brickmold.title==='開模印花：印出與牆上凹痕相符的花磚'){
+        G.brickmold.title=_DEFAULT_BRICKMOLD_ADMIN.title;
+      }
+    }
+    G._migV22=true;changed=true;
+  }
+  /* v23：brickmold 改為三工區製程沙盒 — 補 digCount/carveCount + 升級 help */
+  if(!G._migV23){
+    if(G.brickmold){
+      if(!G.brickmold.digCount)G.brickmold.digCount=3;
+      if(!G.brickmold.carveCount)G.brickmold.carveCount=3;
+      if(typeof G.brickmold.help==='string'&&
+         (G.brickmold.help.indexOf('依製程順序')>=0||
+          G.brickmold.help.indexOf('①取黏土')>=0||
+          G.brickmold.help.indexOf('依你對開模印花的記憶，把工具排出順序')>=0)){
+        G.brickmold.help=_DEFAULT_BRICKMOLD_ADMIN.help;
+      }
+    }
+    G._migV23=true;changed=true;
+  }
+  /* v24：開模印花改為台中車站山牆水果浮雕 — 替換花紋 + 重寫 ch5 narration */
+  if(!G._migV24){
+    if(G.brickmold&&Array.isArray(G.brickmold.patterns)){
+      var idsB=G.brickmold.patterns.map(function(p){return p&&p.id;});
+      var hasOldFlowerB=idsB.indexOf('lotus')>=0||idsB.indexOf('peony')>=0||
+                        idsB.indexOf('cloud')>=0||idsB.indexOf('tortoise')>=0;
+      var hasFruitB=idsB.indexOf('banana')>=0||idsB.indexOf('pineapple')>=0;
+      if(hasOldFlowerB&&!hasFruitB){
+        G.brickmold.patterns=JSON.parse(JSON.stringify(_DEFAULT_BRICKMOLD_ADMIN.patterns));
+        G.brickmold.targetPatternId='pineapple';
+        G.brickmold.title=_DEFAULT_BRICKMOLD_ADMIN.title;
+        G.brickmold.help=_DEFAULT_BRICKMOLD_ADMIN.help;
+      }
+    }
+    if(Array.isArray(G.ch5)){
+      var c5HasBM=G.ch5.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='brickmold';});
+      var c5_0a=G.ch5[0];
+      var c5IsV21a=c5HasBM&&c5_0a&&c5_0a.t==='chapter'&&c5_0a.sub==='印模的記憶';
+      if(c5IsV21a){
+        G.ch5=[
+          {t:'chapter',jp:'第五章',main:'執念之四',sub:'紅磚白石之間'},
+          {t:'narr',text:'走出檢票口，語嫣抬頭看了一下車站正面——\n紅磚牆配著洗石子的白色水平飾帶，黑瓦在陽光下泛著青光。'},
+          {t:'narr',text:'這是 1917 年立起的二代驛，辰野金吾式樣——\n從英國折衷樣式輾轉到臺灣的設計：紅磚、白石、黑瓦。'},
+          {t:'narr',text:'山牆中央有四塊水果浮雕：香蕉、蓮霧、石榴、鳳梨——\n是當時臺灣的代表物產。\n但其中一塊缺了，露出花磚形狀的凹痕。'},
+          {t:'line',who:'語嫣',text:'雁淇以前讀過開模印花的書……\n她說，把熱黏土壓進模子裡時，像把回憶一起印了下去。'},
+          {t:'narr',text:'旁邊的工區裡放著黏土、印模、雕刻刀，還有挖土的鏟子和盛水的盤子。'},
+          {t:'stage',id:'brickmold'},
+          {t:'narr',text:'花磚滑入凹痕的瞬間，紅磚與白石之間多了一道新的紋路，磚牆深處傳來一聲輕響。\n掌心又落入一塊滑塊。'},
+          {t:'item',id:'slider5',name:'滑塊・五',icon:'🪨',asset:'slider5'}
+        ];
+      }
+    }
+    G._migV24=true;changed=true;
+  }
+  /* v25：brickmold 升級為三紋融合（targetPatternId → targetComboIds） */
+  if(!G._migV25){
+    if(G.brickmold){
+      if(!Array.isArray(G.brickmold.targetComboIds)||!G.brickmold.targetComboIds.length){
+        G.brickmold.targetComboIds=G.brickmold.targetPatternId
+          ?[G.brickmold.targetPatternId]
+          :['banana','pomegranate','pineapple'];
+      }
+      if(!G.brickmold.comboCount){
+        G.brickmold.comboCount=Math.max(1,G.brickmold.targetComboIds.length);
+      }
+      if(typeof G.brickmold.help==='string'&&G.brickmold.help.indexOf('挑出三種')<0){
+        G.brickmold.help=_DEFAULT_BRICKMOLD_ADMIN.help;
+      }
+    }
+    G._migV25=true;changed=true;
+  }
+  /* v26：大整理 — 去除迴圈、補滑塊事件、預寫 ch6/7/8、確保 brickmold level、初始化 G.memories */
+  if(!G._migV26){
+    var keysM=['ch1','ch2','ch3','ch4','ch5','ch6','ch7','ch8','ch9','ch10','ch11'];
+    var seenN=false,seenB=false;
+    keysM.forEach(function(k){
+      if(!Array.isArray(G[k]))return;
+      G[k]=G[k].filter(function(ev){
+        if(!ev||ev.t!=='stage')return true;
+        if(ev.id==='niche'){if(seenN)return false;seenN=true;return true;}
+        if(ev.id==='bagua'){if(seenB)return false;seenB=true;return true;}
+        return true;
+      });
+    });
+    if(Array.isArray(G.ch2)){
+      var hasS1m=G.ch2.some(function(ev){return ev&&ev.t==='item'&&ev.id==='slider1';});
+      var bgIdxm=-1;
+      G.ch2.forEach(function(ev,i){if(ev&&ev.t==='stage'&&ev.id==='bagua'&&bgIdxm===-1)bgIdxm=i;});
+      if(!hasS1m&&bgIdxm>=0){
+        var insAt1=bgIdxm+1;
+        for(var im=bgIdxm+1;im<G.ch2.length;im++){
+          if(G.ch2[im]&&(G.ch2[im].t==='narr'||G.ch2[im].t==='line'))insAt1=im+1;else break;
+        }
+        G.ch2.splice(insAt1,0,{t:'item',id:'slider1',name:'滑塊・一',icon:'🪨',asset:'slider1'});
+      }
+    }
+    if(Array.isArray(G.ch3)){
+      var hasS2m=G.ch3.some(function(ev){return ev&&ev.t==='item'&&ev.id==='slider2';});
+      var pzIdxm=-1;
+      G.ch3.forEach(function(ev,i){if(ev&&ev.t==='stage'&&ev.id==='puzzle'&&pzIdxm===-1)pzIdxm=i;});
+      if(!hasS2m&&pzIdxm>=0){
+        var insAt2=pzIdxm+1;
+        for(var jm=pzIdxm+1;jm<G.ch3.length;jm++){
+          if(G.ch3[jm]&&(G.ch3[jm].t==='narr'||G.ch3[jm].t==='line'))insAt2=jm+1;else break;
+        }
+        G.ch3.splice(insAt2,0,{t:'item',id:'slider2',name:'滑塊・二',icon:'🪨',asset:'slider2'});
+      }
+    }
+    var prewriteChM=function(key,jp,main,sub,narrs,sliderId,sliderName){
+      if(!Array.isArray(G[key]))return;
+      var isPHm=G[key].length<=3&&G[key].some(function(ev){
+        return ev&&((ev.t==='chapter'&&(ev.main==='（待填）'||/^執念之[四五六七八]$/.test(ev.main||'')))||
+                    (ev.t==='narr'&&/執念劇情|待續/.test(ev.text||'')));
+      });
+      var hasItM=G[key].some(function(ev){return ev&&ev.t==='item'&&ev.id===sliderId;});
+      if(isPHm){
+        G[key]=[{t:'chapter',jp:jp,main:main,sub:sub}]
+          .concat(narrs.map(function(t){return {t:'narr',text:t};}))
+          .concat([{t:'item',id:sliderId,name:sliderName,icon:'🪨',asset:sliderId}]);
+      }else if(!hasItM){
+        G[key].push({t:'item',id:sliderId,name:sliderName,icon:'🪨',asset:sliderId});
+      }
+    };
+    prewriteChM('ch6','第六章','執念之五','鐘樓的指針',[
+      '走過印花的紅磚牆，視線被一陣金屬撞擊聲拉向頭頂——\n是車站正中央的鐘塔。',
+      '黃銅指針在洗石子鐘面上抖動，秒針卡在某個刻度上動不了。\n語嫣記得雁淇曾說：「火車站的鐘是這座城的心跳。」',
+      '她攀上鐘樓，指尖撥開蛛網，找到一塊鬆動的齒輪。\n卡住的不是時間，是某個未說完的告別。',
+      '齒輪咬合的瞬間，鐘聲噹的一聲，整座車站都聽見了。\n掌心又落下一塊溫熱的滑塊。'
+    ],'slider6','滑塊・六');
+    prewriteChM('ch7','第七章','執念之六','月台的笛音',[
+      '鐘聲未散，第二月台傳來一聲遙遠的火車汽笛。\n語嫣循聲走去，月台空無一人，只有舊長椅與生鏽的路牌。',
+      '她在椅子下發現一枚黃銅哨子——\n吹哨人的物品，車掌的標誌。',
+      '她吹了一聲。\n空氣裡彷彿有列車要進站，卻什麼也沒有。',
+      '汽笛聲卻在記憶深處迴響——\n那是雁淇離開那天，她沒能來得及說的再見。',
+      '哨聲落定，月台地磚浮起一塊帶著鐵鏽味的滑塊。'
+    ],'slider7','滑塊・七');
+    prewriteChM('ch8','第八章','執念之七','最後的票根',[
+      '汽笛餘音引她走到售票口。\n半圓木窗下，一張泛黃的票根靜靜躺在窗台上。',
+      '票面寫著一個她不熟的日期，目的地卻是「彰化」——\n那是雁淇出發那天買的票。',
+      '她翻過票根，背面用鉛筆寫著一行小字：\n「等我回來。」',
+      '原來那班車不是離別，是約定。\n但約定沒能兌現。',
+      '票根輕輕落下，化成她掌心的最後一塊滑塊。'
+    ],'slider8','滑塊・八');
+    if(Array.isArray(G.ch9)&&G.ch9.length<=2){
+      G.ch9=[
+        {t:'chapter',jp:'第九章',main:'執念之八',sub:'集滿八塊的夜'},
+        {t:'narr',text:'八塊滑塊在掌心沉沉地疊著。\n它們的紋路彼此呼應，拼出一道她還看不全的圖。'},
+        {t:'narr',text:'夜更深了，月台燈一盞一盞熄滅，車站底下傳來低沉的迴響。\n像有什麼，在等她去開啟。'}
+      ];
+    }
+    /* 確保 brickmold level 存在 */
+    if(!Array.isArray(G.levels))G.levels=[];
+    if(!G.levels.some(function(lv){return lv&&lv.type==='brickmold';})){
+      var phyIdxC=G.levels.findIndex(function(lv){return lv&&lv.type==='phylock';});
+      var puzIdxC=G.levels.findIndex(function(lv){return lv&&lv.type==='puzzle';});
+      var insC=puzIdxC>=0?puzIdxC:(phyIdxC>=0?phyIdxC:G.levels.length);
+      G.levels.splice(insC,0,{id:'lv-brickmold',name:'關卡五・開模印花',type:'brickmold'});
+    }
+    /* 初始化 G.memories（每個滑塊一個回憶區塊） */
+    if(!G.memories||typeof G.memories!=='object')G.memories={};
+    var memDef=_buildDefaultMemoriesAdmin();
+    Object.keys(memDef).forEach(function(k){
+      var cur=G.memories[k];
+      if(!cur||!Array.isArray(cur.events)||cur.events.length<=2){
+        G.memories[k]=memDef[k];
+      }
+    });
+    G._migV26=true;changed=true;
+  }
+  /* v5：把 ch3 開頭改成 niche → bagua（之前的章節卡/旁白挪到 bagua 之後） */
+  if(!G._migV5){
+    if(Array.isArray(G.ch3)){
+      var nicheIdx=-1,baguaIdx=-1;
+      G.ch3.forEach(function(ev,i){
+        if(ev&&ev.t==='stage'&&ev.id==='niche'&&nicheIdx===-1)nicheIdx=i;
+        if(ev&&ev.t==='stage'&&ev.id==='bagua'&&baguaIdx===-1)baguaIdx=i;
+      });
+      if(nicheIdx>0||(nicheIdx>=0&&baguaIdx-nicheIdx>1)){
+        var pre=G.ch3.slice(0,nicheIdx);
+        var rest=G.ch3.slice(nicheIdx).filter(function(ev){
+          return !(ev&&ev.t==='stage'&&(ev.id==='niche'||ev.id==='bagua'));
+        });
+        G.ch3=[{t:'stage',id:'niche'},{t:'stage',id:'bagua'}].concat(pre,rest);
+      }
+    }
+    G._migV5=true;changed=true;
+  }
+  /* ── 永遠跑的修復器：確保 ch2 有 slider1 item、ch3 有 slider2 item ── */
+  changed=_normalizeSliderItemsAdmin()||changed;
+  if(changed){
+    try{localStorage.setItem(LS_KEY,JSON.stringify(G));}catch(e){}
+    if(_bc)_bc.postMessage({type:'reload'});
+  }
+}
+function _normalizeSliderItemsAdmin(){
+  var changed=false;
+  if(Array.isArray(G.ch2)){
+    var beforeC2a=JSON.stringify(G.ch2);
+    for(var ic2a=G.ch2.length-1;ic2a>=0;ic2a--){
+      if(G.ch2[ic2a]&&G.ch2[ic2a].t==='item'&&G.ch2[ic2a].id==='slider1')G.ch2.splice(ic2a,1);
+    }
+    G.ch2.push({t:'item',id:'slider1',name:'滑塊・一',icon:'🪨',asset:'slider1'});
+    if(JSON.stringify(G.ch2)!==beforeC2a)changed=true;
+  }
+  if(Array.isArray(G.ch3)){
+    var beforeC3a=JSON.stringify(G.ch3);
+    for(var ic3a=G.ch3.length-1;ic3a>=0;ic3a--){
+      if(G.ch3[ic3a]&&G.ch3[ic3a].t==='item'&&G.ch3[ic3a].id==='slider2')G.ch3.splice(ic3a,1);
+    }
+    G.ch3.push({t:'item',id:'slider2',name:'滑塊・二',icon:'🪨',asset:'slider2'});
+    if(JSON.stringify(G.ch3)!==beforeC3a)changed=true;
+  }
+  /* ch4 → sortbins + sortbins2 */
+  if(Array.isArray(G.ch4)){
+    if(!G.ch4.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='sortbins';})){
+      var idxS3a=G.ch4.findIndex(function(ev){return ev&&ev.t==='item'&&ev.id==='slider3';});
+      G.ch4.splice(idxS3a>=0?idxS3a:G.ch4.length,0,{t:'stage',id:'sortbins'});
+      changed=true;
+    }
+    if(!G.ch4.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='sortbins2';})){
+      var idxS4a=G.ch4.findIndex(function(ev){return ev&&ev.t==='item'&&ev.id==='slider4';});
+      G.ch4.splice(idxS4a>=0?idxS4a:G.ch4.length,0,{t:'stage',id:'sortbins2'});
+      changed=true;
+    }
+  }
+  /* ch5 → brickmold（在 slider5 之前） */
+  if(Array.isArray(G.ch5)){
+    var hasBM=G.ch5.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='brickmold';});
+    var hasS5=G.ch5.some(function(ev){return ev&&ev.t==='item'&&ev.id==='slider5';});
+    if(!hasBM){
+      if(hasS5){
+        var idxS5=G.ch5.findIndex(function(ev){return ev&&ev.t==='item'&&ev.id==='slider5';});
+        G.ch5.splice(idxS5,0,{t:'stage',id:'brickmold'});
+        changed=true;
+      }else{
+        G.ch5=[
+          {t:'chapter',jp:'第五章',main:'執念之四',sub:''},
+          {t:'narr',text:'（這裡寫進入第四個執念場景的旁白）'},
+          {t:'stage',id:'brickmold'},
+          {t:'narr',text:'（這裡寫解開後的過渡旁白）'},
+          {t:'item',id:'slider5',name:'滑塊・五',icon:'🪨',asset:'slider5'}
+        ];
+        changed=true;
+      }
+    }
+  }
+  /* ch6 → 夢境探索（大家來找碴） */
+  if(Array.isArray(G.ch6)){
+    var hasDW=G.ch6.some(function(ev){return ev&&ev.t==='stage'&&ev.id==='dreamwalk';});
+    var hasS6=G.ch6.some(function(ev){return ev&&ev.t==='item'&&ev.id==='slider6';});
+    if(!hasDW){
+      G.ch6=[
+        {t:'chapter',jp:'第六章',main:'執念之五',sub:''},
+        {t:'narr',text:'印花的紋路還留在指尖。\n語嫣抬起頭，看見眼前的車站慢慢失去了輪廓。'},
+        {t:'narr',text:'紅磚的牆、洗石子的飾帶、黑瓦的屋簷——\n一塊一塊被光暈柔化，像是泡在水裡的舊照片。'},
+        {t:'narr',text:'她感到雙腳離地。\n或者該說，地板鬆軟得像棉花，把她整個托起來。'},
+        {t:'line',who:'語嫣',text:'這是……夢？'},
+        {t:'narr',text:'四面八方響起腳步聲、報票聲、汽笛聲，\n但所有聲音都像隔著一層水。'},
+        {t:'narr',text:'她閉上眼。\n再睜開時——眼前一片漆黑。'},
+        {t:'blackout',text:'夢境之中',duration:2000},
+        {t:'stage',id:'dreamwalk'},
+        {t:'narr',text:'走過所有的空間，所有的記憶都被翻動一遍。\n夢境的邊緣開始消散。'},
+        {t:'narr',text:'她回過神，掌心又落下了一塊新的滑塊。'},
+        {t:'item',id:'slider6',name:'滑塊・六',icon:'🪨',asset:'slider6'}
+      ];
+      changed=true;
+    }else if(!hasS6){
+      G.ch6.push({t:'item',id:'slider6',name:'滑塊・六',icon:'🪨',asset:'slider6'});
+      changed=true;
+    }
+  }
+  /* 清掉自取的章節 sub「俗名」，章名留給使用者填 */
+  var FANCY_SUBS={
+    '山海之分':1,'紅磚白石之間':1,'印模的記憶':1,
+    '鐘樓的指針':1,'月台的笛音':1,'最後的票根':1,'集滿八塊的夜':1
+  };
+  ['ch4','ch5','ch6','ch7','ch8','ch9'].forEach(function(k){
+    if(!Array.isArray(G[k]))return;
+    G[k].forEach(function(ev){
+      if(ev&&ev.t==='chapter'&&ev.sub&&FANCY_SUBS[ev.sub]){
+        ev.sub='';changed=true;
+      }
+    });
+  });
+  /* 升級回憶劇本（舊短版自動升級到新長版） */
+  changed=_upgradeShortMemoriesAdmin()||changed;
+  return changed;
+}
+function _upgradeShortMemoriesAdmin(){
+  if(!G.memories||typeof G.memories!=='object')G.memories={};
+  var defaults=_buildDefaultMemoriesAdmin();
+  var OLD_TITLES={
+    '雁淇的耳語':1,'撕碎的合照':1,'山線的列車':1,'海線的風':1,
+    '阿公的印模':1,'阿公的花磚':1,'鐘塔下的約定':1,'月台的告別':1,'未寄出的信':1
+  };
+  var changed=false;
+  Object.keys(defaults).forEach(function(k){
+    var cur=G.memories[k];
+    var def=defaults[k];
+    var isStale=!cur||
+                !Array.isArray(cur.events)||
+                cur.events.length<5||
+                (cur.title&&OLD_TITLES[cur.title]);
+    if(isStale){
+      G.memories[k]=def;
+      changed=true;
+    }
+  });
+  return changed;
+}
+function saveAll(){
+  collectAppear();collectStage2();collectStages();collectBagua();collectPuzzle();collectSortbins();collectBrickmold();collectPhylock();
+  try{localStorage.setItem(LS_KEY,JSON.stringify(G));}
+  catch(e){alert('儲存失敗：'+e.message);return;}
+  setSynced(true);
+  note('已儲存　'+new Date().toLocaleTimeString('zh-TW'));
+  if(_bc)_bc.postMessage({type:'reload'});
+}
+function dirty(){setSynced(false);}
+
+/* ══ 遊戲 DEV 工具列開關 ══ */
+function _devShown(){
+  return !(G.dev&&G.dev.show===false);  /* 預設 true */
+}
+function _refreshDevToggleBtn(){
+  var btn=document.getElementById('dev-toggle-btn');
+  if(!btn)return;
+  var on=_devShown();
+  btn.textContent=on?'開':'關';
+  btn.style.background=on?'var(--brick)':'var(--bg2)';
+  btn.style.borderColor=on?'var(--brick)':'var(--text-dim)';
+  btn.style.color=on?'var(--stone)':'var(--text-dim)';
+}
+function toggleDevBar(){
+  if(!G.dev)G.dev={show:true};
+  G.dev.show=!_devShown();
+  try{localStorage.setItem(LS_KEY,JSON.stringify(G));}catch(e){}
+  if(_bc)_bc.postMessage({type:'reload'});
+  _refreshDevToggleBtn();
+  note('DEV 工具列：'+(G.dev.show?'開':'關'));
+}
+function setSynced(ok){
+  var el=document.getElementById('sync-dot');
+  el.className=ok?'ok':'dirty';el.textContent=ok?'● 已同步':'○ 未儲存';
+}
+function note(s){document.getElementById('ftr-note').textContent=s;}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ══ Tab switching ══ */
+function switchTab(tab,btn){
+  document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('on');});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  btn.classList.add('on');
+  document.getElementById('panel-'+tab).classList.add('on');
+  if(tab==='media')    renderMedia();
+  if(tab==='appear')   renderAppear();
+  if(tab==='levels')   renderLevels();
+  if(tab==='memories') renderMemories();
+  if(tab==='dream')    renderDream();
+  if(tab==='endgame')  renderEndgame();
+}
+
+/* ══ 終局：華容道 + 拍照辨識 ══ */
+function renderEndgame(){
+  if(!G.klotski||typeof G.klotski!=='object')G.klotski={
+    warningText:'注意！僅有一次通關機會，請解完所有方塊後再進行下一步！',
+    doneButtonText:'我已經完成了......嗎？',
+    emptyIndex:9
+  };
+  if(!G.klotski.emptyIndex)G.klotski.emptyIndex=9;
+  setVal('kl-warning-input',G.klotski.warningText||'');
+  setVal('kl-done-input',G.klotski.doneButtonText||'');
+  setVal('kl-empty-input',String(G.klotski.emptyIndex||9));
+  /* 9 格 3×3 上傳區（空格那格不可上傳） */
+  var emptyIdx=G.klotski.emptyIndex||9;
+  var h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:480px;">';
+  for(var i=1;i<=9;i++){
+    if(i===emptyIdx){
+      h+='<div class="kl-blk-card" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;background:repeating-linear-gradient(45deg,rgba(232,220,196,.04) 0 8px,rgba(0,0,0,.2) 8px 9px),#1a0e08;border:1px dashed var(--text-dim);border-radius:3px;min-height:140px;justify-content:center;">'
+        +'<div class="dim" style="font-size:11px;letter-spacing:.3em;">'+i+' · 空格</div>'
+        +'</div>';
+    }else{
+      h+='<div class="kl-blk-card" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;">'
+        +'<div class="dim" style="font-size:11px;letter-spacing:.3em;">磚 '+i+'</div>'
+        +'<div id="kl-prev-'+i+'" style="width:100%;aspect-ratio:1/1;background:#1a0e08;border:1px solid var(--brick-dark);border-radius:2px;background-size:cover;background-position:center;"></div>'
+        +'<input type="file" accept="image/*" onchange="_klUploadBlock('+i+',this)" style="width:100%;font-size:10px;">'
+        +'</div>';
+    }
+  }
+  h+='</div>';
+  document.getElementById('kl-blocks-grid').innerHTML=h;
+  /* 載入除空格外的圖預覽 */
+  for(var k=1;k<=9;k++){
+    if(k!==emptyIdx)(function(idx){_klLoadPreview(idx);})(k);
+  }
+  /* photo-final 參考圖 */
+  document.getElementById('pf-ref-area').innerHTML=
+    '<div style="display:flex;align-items:center;gap:12px;">'
+    +'<div id="pf-ref-prev" style="width:160px;height:120px;background:#1a0e08;border:1px solid var(--brick-dark);border-radius:2px;background-size:cover;background-position:center;"></div>'
+    +'<div style="display:flex;flex-direction:column;gap:8px;">'
+    +'<input type="file" accept="image/*" onchange="_pfUploadRef(this)">'
+    +'<span class="dim" style="font-size:11px;">key：<code>photo-final-ref</code></span>'
+    +'</div>'
+    +'</div>';
+  _pfLoadRefPreview();
+}
+function _kdSaveText(field,val){
+  if(!G.klotski)G.klotski={};
+  G.klotski[field]=val;
+}
+function _klSetEmpty(v){
+  var n=parseInt(v,10)||9;
+  if(!G.klotski)G.klotski={};
+  G.klotski.emptyIndex=n;
+  dirty();
+  renderEndgame();
+}
+function _klUploadBlock(idx,input){
+  var f=input.files&&input.files[0];if(!f)return;
+  saveAsset('klotski-'+idx,f,function(ok){
+    if(!ok){note('磚 '+idx+' 儲存失敗');return;}
+    if(!Array.isArray(G.customImages))G.customImages=[];
+    var key='klotski-'+idx;
+    if(!G.customImages.some(function(x){return x&&x.key===key;})){
+      G.customImages.push({key:key});
+      try{localStorage.setItem(LS_KEY,JSON.stringify(G));}catch(e){}
+    }
+    note('磚 '+idx+' 已上傳');
+    _klLoadPreview(idx);
+    if(_bc)_bc.postMessage({type:'reload'});
+  });
+}
+function _klLoadPreview(idx){
+  loadAsset('klotski-'+idx,function(blob){
+    var prev=document.getElementById('kl-prev-'+idx);
+    if(!prev)return;
+    if(blob)prev.style.backgroundImage='url("'+URL.createObjectURL(blob)+'")';
+    else prev.style.backgroundImage='';
+  });
+}
+function _pfUploadRef(input){
+  var f=input.files&&input.files[0];if(!f)return;
+  saveAsset('photo-final-ref',f,function(ok){
+    if(!ok){note('參考圖儲存失敗');return;}
+    if(!Array.isArray(G.customImages))G.customImages=[];
+    if(!G.customImages.some(function(x){return x&&x.key==='photo-final-ref';})){
+      G.customImages.push({key:'photo-final-ref'});
+      try{localStorage.setItem(LS_KEY,JSON.stringify(G));}catch(e){}
+    }
+    note('photo-final 參考圖已上傳');
+    _pfLoadRefPreview();
+    if(_bc)_bc.postMessage({type:'reload'});
+  });
+}
+function _pfLoadRefPreview(){
+  loadAsset('photo-final-ref',function(blob){
+    var prev=document.getElementById('pf-ref-prev');
+    if(!prev)return;
+    if(blob)prev.style.backgroundImage='url("'+URL.createObjectURL(blob)+'")';
+    else prev.style.backgroundImage='';
+  });
+}
+
+/* ══ 夢境（ch6 探索的紙條池與設定） ══ */
+var _DEFAULT_DREAM_ADMIN={
+  maxHearts:5,
+  outerGrid:{width:6,height:6},
+  zones:[
+    {id:'lobby',name:'車站大廳',mapX:3,mapY:3,gridW:7,gridH:7,
+     slips:[
+       {text:'N',correct:true},{text:'E',correct:true},{text:'W',correct:true},{text:'S',correct:true},
+       {text:'莨苕',correct:true},{text:'公佈欄',correct:true},
+       {text:'開車資訊',correct:true},{text:'售票口',correct:true},
+       {text:'第一等候車室',correct:true},{text:'第二等候車室',correct:true},{text:'第三等候車室',correct:true},
+       {text:'長椅',correct:false},{text:'鏡子',correct:false},{text:'燈罩',correct:false},
+       {text:'木門',correct:false},{text:'風扇',correct:false},{text:'招牌',correct:false},
+       {text:'灰塵',correct:false},{text:'紙屑',correct:false}
+     ]},
+    {id:'platform1',name:'第一月台',mapX:6,mapY:5,gridW:6,gridH:6,
+     slips:[
+       {text:'流蘇雕飾',correct:true},{text:'紅磚牆',correct:true},
+       {text:'補票口',correct:true},{text:'站長室',correct:true},
+       {text:'55EM107T',correct:true},{text:'自強號餐車',correct:true},
+       {text:'40DR2720',correct:true},{text:'光華號',correct:true},{text:'40DR2715',correct:true},
+       {text:'煤炭',correct:false},{text:'油桶',correct:false},
+       {text:'枕木',correct:false},{text:'旗幟',correct:false},
+       {text:'月台燈',correct:false},{text:'鋼軌',correct:false}
+     ]},
+    {id:'platform2',name:'第二月台',mapX:2,mapY:6,gridW:5,gridH:5,
+     slips:[
+       {text:'R111',correct:true},
+       {text:'鐵軌',correct:false},{text:'信號燈',correct:false},
+       {text:'沙石',correct:false},{text:'油桶',correct:false},
+       {text:'枕木',correct:false},{text:'油布',correct:false},
+       {text:'警示牌',correct:false},{text:'鋼釘',correct:false},
+       {text:'木板',correct:false},{text:'雜草',correct:false},
+       {text:'鐵柵',correct:false},{text:'旗子',correct:false}
+     ]}
+  ]
+};
+var _curDream='lobby';
+function renderDream(){
+  if(!G.dream||!Array.isArray(G.dream.zones)||!G.dream.zones.length){
+    G.dream=JSON.parse(JSON.stringify(_DEFAULT_DREAM_ADMIN));
+  }
+  setVal('dr-max-hearts',String(G.dream.maxHearts||5));
+  setVal('dr-outer-w',String((G.dream.outerGrid&&G.dream.outerGrid.width)||6));
+  setVal('dr-outer-h',String((G.dream.outerGrid&&G.dream.outerGrid.height)||6));
+  /* 分頁列 */
+  var html=G.dream.zones.map(function(z){
+    return '<button class="chtab'+(z.id===_curDream?' on':'')+'" onclick="switchDream(\''+esc(z.id)+'\')">'+esc(z.name)+'</button>';
+  }).join('');
+  document.getElementById('dr-tabs').innerHTML=html;
+  renderDreamBody();
+  /* 綁總體欄位的 input → 寫入 G.dream */
+  ['dr-max-hearts','dr-outer-w','dr-outer-h'].forEach(function(id){
+    var el=document.getElementById(id);if(!el)return;
+    el.oninput=function(){
+      var v=parseInt(el.value,10);if(isNaN(v)||v<1)return;
+      if(id==='dr-max-hearts')G.dream.maxHearts=v;
+      if(id==='dr-outer-w'){G.dream.outerGrid=G.dream.outerGrid||{};G.dream.outerGrid.width=v;}
+      if(id==='dr-outer-h'){G.dream.outerGrid=G.dream.outerGrid||{};G.dream.outerGrid.height=v;}
+      dirty();
+    };
+  });
+}
+function switchDream(id){_curDream=id;renderDream();}
+function renderDreamBody(){
+  var z=G.dream.zones.find(function(zz){return zz.id===_curDream;});
+  if(!z){document.getElementById('dr-body').innerHTML='';return;}
+  var html=''
+    +'<div class="sec"><div class="sec-title">'+esc(z.name)+' — 區域設定</div>'
+    +'<div class="bar" style="gap:18px;">'
+    +'<div class="fld" style="margin-bottom:0;"><label>顯示名稱</label>'
+    +'<input type="text" value="'+esc(z.name)+'" oninput="_drZone().name=this.value;dirty();renderDream();" style="width:160px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>外圖入口 X</label>'
+    +'<input type="number" min="1" max="20" value="'+(z.mapX||1)+'" oninput="_drZone().mapX=parseInt(this.value,10)||1;dirty()" style="width:70px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>外圖入口 Y</label>'
+    +'<input type="number" min="1" max="20" value="'+(z.mapY||1)+'" oninput="_drZone().mapY=parseInt(this.value,10)||1;dirty()" style="width:70px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>區內棋盤寬</label>'
+    +'<input type="number" min="2" max="12" value="'+(z.gridW||6)+'" oninput="_drZone().gridW=parseInt(this.value,10)||6;dirty()" style="width:70px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>區內棋盤高</label>'
+    +'<input type="number" min="2" max="12" value="'+(z.gridH||6)+'" oninput="_drZone().gridH=parseInt(this.value,10)||6;dirty()" style="width:70px"></div>'
+    +'</div></div>'
+    +'<div class="sec"><div class="sec-title">紙條池（'+esc(z.name)+'）</div>'
+    +'<p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:8px;">'
+    +'玩家進入此區後，這些紙條會隨機散在棋盤格子上。撿「正確」紙條 → 進度 +1；撿「錯誤」紙條 → 扣一顆心。<br>'
+    +'已撿過的紙條不會重新出現（除非死亡重置）。撿齊全部正確即完成該區。'
+    +'</p>'
+    +'<div id="dr-slips-list"></div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;">'
+    +'<button class="btn btn-p btn-sm" onclick="addDreamSlip(true)">＋ 新增正確紙條</button>'
+    +'<button class="btn btn-p btn-sm" onclick="addDreamSlip(false)">＋ 新增錯誤紙條</button>'
+    +'</div></div>';
+  document.getElementById('dr-body').innerHTML=html;
+  renderDreamSlips();
+}
+function _drZone(){return G.dream.zones.find(function(z){return z.id===_curDream;});}
+function renderDreamSlips(){
+  var z=_drZone();if(!z)return;
+  if(!Array.isArray(z.slips))z.slips=[];
+  var h='';
+  /* 先正確、後錯誤排列 */
+  z.slips.forEach(function(s,i){
+    var c=s.correct?'#80e0a0':'#e89060';
+    var label=s.correct?'正確':'錯誤';
+    h+='<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;padding:6px;background:var(--bg2);border-left:3px solid '+c+';border-radius:2px;">'
+      +'<span class="dim" style="min-width:30px;font-size:11px;">'+(i+1)+'</span>'
+      +'<input type="text" value="'+esc(s.text||'')+'" placeholder="紙條文字" style="flex:1" oninput="_drZone().slips['+i+'].text=this.value;dirty()">'
+      +'<select style="width:80px;" onchange="_drZone().slips['+i+'].correct=(this.value===\'1\');dirty();renderDreamSlips()">'
+      +'<option value="1"'+(s.correct?' selected':'')+'>正確</option>'
+      +'<option value="0"'+(!s.correct?' selected':'')+'>錯誤</option>'
+      +'</select>'
+      +'<button class="btn btn-d btn-sm" onclick="delDreamSlip('+i+')">刪</button>'
+      +'</div>';
+  });
+  var listEl=document.getElementById('dr-slips-list');
+  if(listEl)listEl.innerHTML=h||'<div class="dim" style="padding:10px;">（尚無紙條）</div>';
+}
+function addDreamSlip(correct){
+  var z=_drZone();if(!z)return;
+  if(!Array.isArray(z.slips))z.slips=[];
+  z.slips.push({text:'',correct:!!correct});
+  renderDreamSlips();dirty();
+}
+function delDreamSlip(i){
+  var z=_drZone();if(!z||!z.slips)return;
+  z.slips.splice(i,1);
+  renderDreamSlips();dirty();
+}
+
+/* ══ 回憶（每塊滑塊一段黑屏回憶）══ */
+var _curMem='slider1';
+var SLIDER_LIST=[
+  {id:'slider1',label:'滑塊・一'},
+  {id:'slider2',label:'滑塊・二'},
+  {id:'slider3',label:'滑塊・三'},
+  {id:'slider4',label:'滑塊・四'},
+  {id:'slider5',label:'滑塊・五'},
+  {id:'slider6',label:'滑塊・六'},
+  {id:'slider7',label:'滑塊・七'},
+  {id:'slider8',label:'滑塊・八'}
+];
+function renderMemories(){
+  if(!G.memories||typeof G.memories!=='object')G.memories={};
+  /* 分頁列 */
+  var tabsHtml=SLIDER_LIST.map(function(s){
+    return '<button class="chtab'+(s.id===_curMem?' on':'')+'" onclick="switchMem(\''+s.id+'\')">'+s.label+'</button>';
+  }).join('');
+  document.getElementById('mem-tabs').innerHTML=tabsHtml;
+  renderMemoryBody();
+}
+function switchMem(id){_curMem=id;renderMemories();}
+function renderMemoryBody(){
+  if(!G.memories[_curMem])G.memories[_curMem]={title:'',events:[]};
+  var m=G.memories[_curMem];
+  var imgKey=m.imageKey||('mem-'+_curMem);
+  var html=''
+    +'<div class="sec"><div class="sec-title">'+esc(_curMem)+' — 回憶設定</div>'
+    +'<div class="fld"><label>回憶標題（顯示在中央滑塊下方，可選）</label>'
+    +'<input type="text" id="mem-title" value="'+esc(m.title||'')+'" placeholder="如：雁淇的耳語" oninput="G.memories[_curMem].title=this.value;dirty()">'
+    +'</div>'
+    +'<div class="fld"><label>回憶圖片 key（自訂）</label>'
+    +'<input type="text" id="mem-imgkey" value="'+esc(imgKey)+'" placeholder="如：mem-slider1" oninput="G.memories[_curMem].imageKey=this.value;dirty();_memRefreshPreview()">'
+    +'<p class="dim" style="font-size:11px;margin-top:6px;line-height:1.5;">這個 key 會用來抓「圖片／音訊」分頁中對應的自訂圖片做為回憶背景。預設為 <code>mem-滑塊id</code>。</p>'
+    +'</div>'
+    +'<div class="fld"><label>上傳回憶圖片（會以上方 key 存入 IndexedDB）</label>'
+    +'<input type="file" id="mem-imgfile" accept="image/*" onchange="_memUploadImage(this)">'
+    +'<div id="mem-img-preview" style="margin-top:10px;max-width:300px;"></div>'
+    +'</div></div>'
+    +'<div class="sec"><div class="sec-title">回憶事件（依序顯示為對話框）</div>'
+    +'<p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:10px;">玩家點擊中央滑塊後，畫面變黑（如有圖會顯示為背景），然後依序顯示這裡的事件。每點一下推進到下一個。</p>'
+    +'<div id="mem-evs"></div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px;">'
+    +'<button class="btn btn-p btn-sm" onclick="addMemEvent(\'narr\')">＋ 旁白</button>'
+    +'<button class="btn btn-p btn-sm" onclick="addMemEvent(\'line\')">＋ 對白</button>'
+    +'</div></div>';
+  document.getElementById('mem-body').innerHTML=html;
+  _memRefreshEvents();
+  _memRefreshPreview();
+}
+function _memRefreshEvents(){
+  var m=G.memories[_curMem];
+  if(!Array.isArray(m.events))m.events=[];
+  var h='';
+  m.events.forEach(function(ev,i){
+    if(ev.t==='narr'){
+      h+='<div style="border:1px solid var(--border);border-radius:3px;padding:10px;margin-bottom:8px;background:var(--bg2);">'
+        +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+        +'<span class="dim" style="min-width:48px;font-size:11px;">'+(i+1)+' · 旁白</span>'
+        +'<button class="btn btn-d btn-sm" style="margin-left:auto;" onclick="delMemEvent('+i+')">刪</button>'
+        +'</div>'
+        +'<textarea rows="2" style="width:100%;" oninput="G.memories[_curMem].events['+i+'].text=this.value;dirty()" placeholder="旁白文字">'+esc(ev.text||'')+'</textarea>'
+        +'</div>';
+    }else if(ev.t==='line'){
+      h+='<div style="border:1px solid var(--border);border-radius:3px;padding:10px;margin-bottom:8px;background:var(--bg2);">'
+        +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+        +'<span class="dim" style="min-width:48px;font-size:11px;">'+(i+1)+' · 對白</span>'
+        +'<input type="text" value="'+esc(ev.who||'')+'" placeholder="說話者" style="width:130px" oninput="G.memories[_curMem].events['+i+'].who=this.value;dirty()">'
+        +'<button class="btn btn-d btn-sm" style="margin-left:auto;" onclick="delMemEvent('+i+')">刪</button>'
+        +'</div>'
+        +'<textarea rows="2" style="width:100%;" oninput="G.memories[_curMem].events['+i+'].text=this.value;dirty()" placeholder="對白文字">'+esc(ev.text||'')+'</textarea>'
+        +'</div>';
+    }
+  });
+  document.getElementById('mem-evs').innerHTML=h||'<div class="dim" style="padding:14px;text-align:center;">（尚無事件，按下方鈕加入旁白／對白）</div>';
+}
+function addMemEvent(kind){
+  var m=G.memories[_curMem];
+  if(!Array.isArray(m.events))m.events=[];
+  if(kind==='narr')m.events.push({t:'narr',text:''});
+  else m.events.push({t:'line',who:'',text:''});
+  _memRefreshEvents();dirty();
+}
+function delMemEvent(i){
+  G.memories[_curMem].events.splice(i,1);
+  _memRefreshEvents();dirty();
+}
+function _memUploadImage(input){
+  var f=input.files&&input.files[0];if(!f)return;
+  var key=G.memories[_curMem].imageKey||('mem-'+_curMem);
+  saveAsset(key,f,function(ok){
+    if(!ok){note('圖片儲存失敗');return;}
+    /* 同步加入 G.customImages 以便後台 media 管理 */
+    if(!Array.isArray(G.customImages))G.customImages=[];
+    if(!G.customImages.some(function(x){return x&&x.key===key;})){
+      G.customImages.push({key:key});
+      try{localStorage.setItem(LS_KEY,JSON.stringify(G));}catch(e){}
+    }
+    note('已上傳：'+key+'　'+new Date().toLocaleTimeString('zh-TW'));
+    _memRefreshPreview();
+    if(_bc)_bc.postMessage({type:'reload'});
+  });
+}
+function _memRefreshPreview(){
+  var key=(G.memories[_curMem]&&G.memories[_curMem].imageKey)||('mem-'+_curMem);
+  var prev=document.getElementById('mem-img-preview');
+  if(!prev)return;
+  loadAsset(key,function(blob){
+    if(blob){
+      var url=URL.createObjectURL(blob);
+      prev.innerHTML='<img src="'+url+'" style="max-width:100%;border:1px solid var(--border);border-radius:3px;">'
+        +'<div class="dim" style="font-size:11px;margin-top:4px;">key：<code>'+esc(key)+'</code></div>';
+    }else{
+      prev.innerHTML='<div class="dim" style="padding:18px;border:1px dashed var(--border);text-align:center;font-size:12px;">（尚未上傳。key：<code>'+esc(key)+'</code>）</div>';
+    }
+  });
+}
+
+/* ══ Chapters ══ */
+function switchCh(ch,btn){
+  _currentCh=ch;
+  document.querySelectorAll('.chtab').forEach(function(b){b.classList.remove('on');});
+  btn.classList.add('on');renderEvents();
+}
+
+/* ── Drag-to-reorder state ── */
+var _evDrag=null; // dragged index
+
+function renderEvents(){
+  var ch=G[_currentCh]||[];
+  document.getElementById('ev-count').textContent='共 '+ch.length+' 個事件';
+  var h='';
+  if(!ch.length){
+    h='<div class="dim" style="padding:10px 0 4px;text-align:center;font-size:11px;">此章節尚無事件</div>';
+    h+=insertRowHtml(0);
+    document.getElementById('ev-list').innerHTML=h;
+    return;
+  }
+  h+=insertRowHtml(0);
+  ch.forEach(function(ev,i){
+    h+='<div class="ev-item" draggable="true" data-idx="'+i+'"'
+      +' ondragstart="evDS(event,'+i+')"'
+      +' ondragover="evDO(event,'+i+')"'
+      +' ondragleave="evDL(event)"'
+      +' ondrop="evDP(event,'+i+')"'
+      +' ondragend="evDE()">';
+    h+='<div class="ev-drag-handle" title="拖動排序">⠿</div>';
+    h+='<span class="badge b-'+ev.t+'">'+ev.t+'</span>';
+    h+='<div class="ev-body">'+evSum(ev)+'</div>';
+    h+='<div class="ev-acts">';
+    h+='<button class="btn btn-g btn-sm" onclick="editEv('+i+')">編輯</button>';
+    h+='<button class="btn btn-d btn-sm" onclick="delEv('+i+')">刪</button>';
+    h+='</div></div>';
+    h+=insertRowHtml(i+1);
+  });
+  document.getElementById('ev-list').innerHTML=h;
+}
+
+function insertRowHtml(idx){
+  return '<div class="ev-insert-row" onclick="insertEvent('+idx+')" title="在此插入新事件">'
+    +'<div class="ev-insert-line"></div>'
+    +'<div class="ev-insert-btn">＋ 插入</div>'
+    +'<div class="ev-insert-line"></div>'
+    +'</div>';
+}
+
+function evSum(ev){
+  var t=ev.t;
+  if(t==='narr')    return '<span style="color:#8080c0">旁白 </span>'+esc((ev.text||'').replace(/\n/g,' ')).substring(0,55);
+  if(t==='line')    return '<span style="color:#80b060">'+esc(ev.who||'?')+'：</span>'+esc((ev.text||'').replace(/\n/g,' ')).substring(0,45);
+  if(t==='chapter') return '<span style="color:var(--gold)">'+esc(ev.jp||'')+'　'+esc(ev.main||'')+'</span>'+(ev.sub?' <span style="color:var(--text-dim)">'+esc(ev.sub)+'</span>':'');
+  if(t==='show')    return '顯示立繪：<span style="color:#c080c0">'+esc(ev.id||'')+'</span>';
+  if(t==='hide')    return '隱藏立繪：<span style="color:#c080c0">'+esc(ev.id||'')+'</span>';
+  if(t==='bg')      return '背景：<span style="color:#6090c0">'+esc(ev.scene||'')+'</span>';
+  if(t==='fx')      return '特效：<span style="color:#c07070">'+esc(ev.fn||'')+'</span>';
+  if(t==='blackout')return '黑幕：<span style="color:#999">'+esc(ev.text||'')+'</span>'+(ev.duration?' ('+ev.duration+'ms)':'');
+  if(t==='stage')   return '舞台：<span style="color:#60c090">'+esc(ev.id||'')+'</span>';
+  if(t==='audio')   return '<span style="color:#70c070">['+esc(ev.action||'')+']</span> 音效：<span style="color:#70c070">'+esc(ev.key||ev.action||'')+'</span>'+(ev.loop?' 循環':'');
+  if(t==='item')    return '取得道具：<span style="color:#e0b060">'+esc(ev.icon||'📦')+' '+esc(ev.name||ev.id||'')+'</span>'+(ev.asset?' <span class="dim">(asset:'+esc(ev.asset)+')</span>':'');
+  if(t==='image')   return '純顯示圖片：<span style="color:#60c0c0">'+esc(ev.asset||'(未設)')+'</span> <span class="dim">'+(ev.duration||3000)+'ms</span>';
+  if(t==='wait')    return '等待 <span style="color:#a0a0a0">'+(ev.ms||1000)+'ms</span>';
+  return esc(JSON.stringify(ev).substring(0,60));
+}
+
+/* Drag handlers */
+function evDS(e,i){
+  _evDrag=i;
+  e.dataTransfer.effectAllowed='move';
+  setTimeout(function(){var el=document.querySelector('[data-idx="'+i+'"]');if(el)el.classList.add('ev-dragging');},0);
+}
+function evDO(e,i){
+  if(_evDrag===null||_evDrag===i)return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.ev-item').forEach(function(el){el.classList.remove('ev-drag-over-top','ev-drag-over-bot');});
+  var el=e.currentTarget,r=el.getBoundingClientRect();
+  el.classList.add(e.clientY<r.top+r.height/2?'ev-drag-over-top':'ev-drag-over-bot');
+}
+function evDL(e){
+  e.currentTarget.classList.remove('ev-drag-over-top','ev-drag-over-bot');
+}
+function evDP(e,i){
+  e.preventDefault();
+  if(_evDrag===null||_evDrag===i){_evDrag=null;return;}
+  var ch=G[_currentCh],from=_evDrag;
+  var el=e.currentTarget,r=el.getBoundingClientRect();
+  var to=(e.clientY<r.top+r.height/2)?i:i+1;
+  if(from<to)to--;
+  var item=ch.splice(from,1)[0];
+  ch.splice(to,0,item);
+  _evDrag=null;renderEvents();dirty();
+}
+function evDE(){
+  _evDrag=null;
+  document.querySelectorAll('.ev-item').forEach(function(el){
+    el.classList.remove('ev-dragging','ev-drag-over-top','ev-drag-over-bot');
+  });
+}
+function delEv(i){if(!confirm('確定刪除？'))return;G[_currentCh].splice(i,1);renderEvents();dirty();}
+
+/* ══ Event Modal ══ */
+var EV_FIELDS={
+  narr:   [{k:'text',lbl:'旁白文字',ta:true}],
+  line:   [{k:'who',lbl:'說話者',ta:false,suggest:['語嫣','雁淇']},{k:'text',lbl:'台詞',ta:true}],
+  chapter:[{k:'jp',lbl:'日文章節名',ta:false},{k:'main',lbl:'主標題',ta:false},{k:'sub',lbl:'副標題',ta:false}],
+  show:   [{k:'id',lbl:'立繪 ID（如 sp-yuyan）',ta:false}],
+  hide:   [{k:'id',lbl:'立繪 ID',ta:false}],
+  bg:     [{k:'scene',lbl:'場景 ID（如 1908、phonebooth）',ta:false}],
+  fx:     [{k:'fn',lbl:'特效名（如 phoneGlow、rainOn、rainFade、lightning2）',ta:false}],
+  blackout:[{k:'text',lbl:'黑幕文字',ta:false},{k:'duration',lbl:'持續毫秒（如 3000）',ta:false}],
+  stage:  [{k:'id',lbl:'舞台 ID（phone-ring、switchboard、map、hint-gate、stage2）',ta:false}],
+  image:  [{k:'asset',lbl:'圖片 Asset Key（必填，例：cg-1）',ta:false},
+           {k:'duration',lbl:'顯示持續毫秒（預設 3000）',ta:false},
+           {k:'fade',lbl:'淡入淡出毫秒（預設 300）',ta:false}],
+  wait:   [{k:'ms',lbl:'等待毫秒（如 500）',ta:false}],
+  item:   [{k:'id',lbl:'道具 ID（如 map）',ta:false},
+           {k:'name',lbl:'顯示名稱（如 地圖）',ta:false},
+           {k:'icon',lbl:'Emoji 圖示（若道具沒有圖片時顯示；如 🗺）',ta:false},
+           {k:'asset',lbl:'對應圖片 Asset Key（留空＝同 ID）',ta:false}],
+  audio:  []  // dynamic
+};
+var _insertAt=null; // null=append, number=insert before that index
+function addEvent(){_insertAt=null;_modalIdx=-1;_modalEv={t:'narr',text:''};openModal();}
+function insertEvent(idx){_insertAt=idx;_modalIdx=-1;_modalEv={t:'narr',text:''};openModal();}
+function editEv(i){_insertAt=null;_modalIdx=i;_modalEv=Object.assign({},G[_currentCh][i]);openModal();}
+function openModal(){
+  document.getElementById('modal-title').textContent=_modalIdx===-1?'新增事件':'編輯事件';
+  document.getElementById('modal-type').value=_modalEv.t||'narr';
+  buildModalFields();document.getElementById('ev-modal').classList.add('on');
+}
+function closeModal(){document.getElementById('ev-modal').classList.remove('on');}
+function buildModalFields(){
+  var t=document.getElementById('modal-type').value;
+  var h='';
+  if(t==='audio'){
+    // Build audio keys list
+    var audioKeys=['music','ring'];
+    if(G.customAudio)G.customAudio.forEach(function(a){audioKeys.push(a.key);});
+    h+='<div class="fld"><label>動作</label><select id="mf-action">'
+      +'<option value="play"'+((_modalEv.action==='play')?' selected':'')+'>播放 (play)</option>'
+      +'<option value="stop"'+((_modalEv.action==='stop')?' selected':'')+'>停止 (stop)</option>'
+      +'<option value="stopAll"'+((_modalEv.action==='stopAll')?' selected':'')+'>停止全部 (stopAll)</option>'
+      +'</select></div>';
+    h+='<div class="fld"><label>音效 Key</label><select id="mf-key">';
+    audioKeys.forEach(function(k){h+='<option value="'+k+'"'+((k===_modalEv.key)?' selected':'')+'>'+k+'</option>';});
+    h+='</select></div>';
+    h+='<div class="fld"><label>循環播放</label><select id="mf-loop">'
+      +'<option value="true"'+((_modalEv.loop===true||_modalEv.loop==='true')?' selected':'')+'>是</option>'
+      +'<option value="false"'+((!_modalEv.loop||_modalEv.loop==='false')?' selected':'')+'>否</option>'
+      +'</select></div>';
+  }else{
+    (EV_FIELDS[t]||[]).forEach(function(f){
+      var v=esc(_modalEv[f.k]||'');
+      h+='<div class="fld"><label>'+f.lbl+'</label>';
+      if(f.ta){
+        h+='<textarea id="mf-'+f.k+'">'+v+'</textarea>';
+      }else if(t==='line'&&f.k==='who'){
+        /* 對話說話者：input + datalist 自動完成 + 下方快選按鈕 */
+        h+='<input type="text" id="mf-'+f.k+'" value="'+v+'" list="speakers-list" placeholder="語嫣／雁淇／系統…">';
+        h+=speakersDatalist();
+        h+='<div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">';
+        SPEAKERS.forEach(function(s){
+          h+='<button type="button" class="btn btn-g btn-sm" style="font-size:11px;padding:3px 12px;" '
+            +'onclick="document.getElementById(\'mf-who\').value=\''+esc(s)+'\';">'+esc(s)+'</button>';
+        });
+        h+='</div>';
+      }else if((t==='show'||t==='hide')&&f.k==='id'){
+        /* 立繪 ID：給已知 sprite key 自動完成 */
+        h+='<input type="text" id="mf-'+f.k+'" value="'+v+'" list="sprites-list" placeholder="sp-yuyan / sp-yanqi…">';
+        h+=spritesDatalist();
+      }else{
+        h+='<input type="text" id="mf-'+f.k+'" value="'+v+'">';
+      }
+      h+='</div>';
+    });
+  }
+  document.getElementById('modal-fields').innerHTML=h;
+}
+/* 對話常見說話者：直接出現在 input 的下拉建議；可自由輸入其他名字 */
+var SPEAKERS=['語嫣','雁淇','系統'];
+function speakersDatalist(){
+  return '<datalist id="speakers-list">'
+    +SPEAKERS.map(function(s){return '<option value="'+esc(s)+'">';}).join('')
+    +'</datalist>';
+}
+/* 立繪 ID 自動完成：固定立繪 + 自訂的 sprite */
+function spritesDatalist(){
+  var ids=allSpriteKeys();
+  return '<datalist id="sprites-list">'
+    +ids.map(function(s){return '<option value="'+esc(s)+'">';}).join('')
+    +'</datalist>';
+}
+function confirmModal(){
+  var t=document.getElementById('modal-type').value;
+  var ev={t:t};
+  if(t==='audio'){
+    var act=document.getElementById('mf-action');
+    var key=document.getElementById('mf-key');
+    var lp=document.getElementById('mf-loop');
+    if(act)ev.action=act.value;
+    if(key)ev.key=key.value;
+    if(lp)ev.loop=(lp.value==='true');
+  }else{
+    (EV_FIELDS[t]||[]).forEach(function(f){
+      var el=document.getElementById('mf-'+f.k);if(el)ev[f.k]=el.value;
+    });
+  }
+  if(_modalIdx===-1){
+    if(_insertAt!==null)G[_currentCh].splice(_insertAt,0,ev);
+    else G[_currentCh].push(ev);
+  }else{G[_currentCh][_modalIdx]=ev;}
+  closeModal();renderEvents();dirty();
+}
+document.getElementById('ev-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+/* ══ Jacks ══ */
+function renderJacks(){
+  var h='';
+  G.jacks.forEach(function(j,i){
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">';
+    h+='<span class="dim" style="min-width:30px;text-align:right;font-size:11px;">'+esc(j.id)+'</span>';
+    h+='<input type="text" value="'+esc(j.name)+'" placeholder="名稱" oninput="G.jacks['+i+'].name=this.value;dirty()" style="flex:1">';
+    h+='<input type="text" value="'+esc(j.num)+'" placeholder="番號" oninput="G.jacks['+i+'].num=this.value;dirty()" style="width:85px">';
+    h+='<button class="btn btn-d btn-sm" onclick="delJack('+i+')">刪除</button></div>';
+  });
+  document.getElementById('jack-list').innerHTML=h||'<div class="dim" style="padding:20px;text-align:center;">尚無分機</div>';
+}
+function addJack(){
+  if(G.jacks.length>=16){alert('分機最多只能有 16 個。');return;}
+  var n=G.jacks.length+1;
+  G.jacks.push({id:'j'+String(n).padStart(2,'0'),name:'',num:''});
+  renderJacks();dirty();
+}
+function delJack(i){if(!confirm('刪除分機？'))return;G.jacks.splice(i,1);renderJacks();dirty();}
+
+/* ══ Calls ══ */
+function renderCalls(){
+  var h='';
+  G.calls.forEach(function(c,ci){
+    var fo=jackOpts(c.fromId),to=jackOpts(c.toId);
+    h+='<div class="call-card">';
+    h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
+    h+='<span style="color:var(--gold);font-size:13px;">通話 '+(ci+1)+'</span>';
+    h+='<button class="btn btn-d btn-sm" style="margin-left:auto" onclick="delCall('+ci+')">刪除通話</button></div>';
+    h+='<div style="display:flex;gap:8px;margin-bottom:10px;">';
+    h+='<div class="fld" style="flex:1"><label>發話方</label><select onchange="updCallJack('+ci+',\'from\',this.value)">'+fo+'</select></div>';
+    h+='<div style="display:flex;align-items:flex-end;padding-bottom:8px;color:var(--gold-dim)">→</div>';
+    h+='<div class="fld" style="flex:1"><label>受話方</label><select onchange="updCallJack('+ci+',\'to\',this.value)">'+to+'</select></div>';
+    h+='</div>';
+    h+='<div class="dim" style="margin-bottom:6px;font-size:11px;">對話內容</div>';
+    c.dialogs.forEach(function(d,di){
+      h+='<div class="dlg-row">';
+      h+='<input class="dlg-who" type="text" value="'+esc(d.who)+'" placeholder="說話者" oninput="G.calls['+ci+'].dialogs['+di+'].who=this.value;dirty()">';
+      h+='<textarea style="flex:1;min-height:48px;" oninput="G.calls['+ci+'].dialogs['+di+'].text=this.value;dirty()">'+esc(d.text)+'</textarea>';
+      h+='<button class="btn btn-d btn-sm" style="align-self:flex-start" onclick="delDlg('+ci+','+di+')">刪</button>';
+      h+='</div>';
+    });
+    h+='<button class="btn btn-g btn-sm mt12" onclick="addDlg('+ci+')">＋ 新增對話行</button></div>';
+  });
+  document.getElementById('call-list').innerHTML=h||'<div class="dim" style="padding:20px;text-align:center;">尚無通話劇情</div>';
+}
+function jackOpts(selId){
+  return G.jacks.map(function(j){return '<option value="'+j.id+'"'+(j.id===selId?' selected':'')+'>'+esc(j.name)+' '+esc(j.num)+'</option>';}).join('');
+}
+function updCallJack(ci,side,val){
+  var j=G.jacks.find(function(x){return x.id===val;});if(!j)return;
+  if(side==='from'){G.calls[ci].fromId=j.id;G.calls[ci].fromName=j.name;G.calls[ci].fromNum=j.num;}
+  else            {G.calls[ci].toId  =j.id;G.calls[ci].toName  =j.name;G.calls[ci].toNum  =j.num;}
+  dirty();
+}
+function addCall(){
+  var a=G.jacks[0]||{id:'j01',name:'',num:''},b=G.jacks[1]||{id:'j02',name:'',num:''};
+  G.calls.push({fromId:a.id,fromName:a.name,fromNum:a.num,toId:b.id,toName:b.name,toNum:b.num,dialogs:[{who:'',text:''}]});
+  renderCalls();dirty();
+}
+function delCall(ci){if(!confirm('刪除此通話？'))return;G.calls.splice(ci,1);renderCalls();dirty();}
+function addDlg(ci){G.calls[ci].dialogs.push({who:'',text:''});renderCalls();dirty();}
+function delDlg(ci,di){G.calls[ci].dialogs.splice(di,1);renderCalls();dirty();}
+
+/* ══ Media ══ */
+var FIXED_IMG=[
+  {key:'phonebooth-exterior',lbl:'電話亭外觀',   desc:'CSS 背景',   type:'bg'},
+  {key:'phone-interior',     lbl:'電話亭內部',   desc:'CSS 背景',   type:'bg'},
+  {key:'exchange-scene',     lbl:'電信交換局',   desc:'場景圖',     type:'bg'},
+  {key:'sp-yuyan',           lbl:'語嫣（現代）', desc:'女主角立繪', type:'sprite'},
+  {key:'sp-yuyan-1908',      lbl:'語嫣（1908）', desc:'女主角立繪', type:'sprite'},
+  {key:'sp-yanqi',           lbl:'雁淇',         desc:'男主角立繪', type:'sprite'},
+  {key:'sp-yanqi',           lbl:'雁淇',         desc:'角色立繪',   type:'sprite'},
+  {key:'map',                lbl:'地圖道具',     desc:'玩家道具欄顯示', type:'bg'},
+  {key:'hint-photo',         lbl:'線索照片（道具）', desc:'玩家買到後進道具欄、揭露頁顯示', type:'bg'},
+  {key:'stage2-ref',         lbl:'關卡二參考照', desc:'比對用（玩家不可見）', type:'ref'}
+];
+/* 第三關壁龕＋八卦相關圖片改放在「關卡 → 關卡三」分頁；第四關 25 塊拼圖改放在「關卡 → 關卡四」 */
+var FIXED_AU=[
+  {key:'music',lbl:'背景音樂',desc:'遊戲中持續循環播放'},
+  {key:'ring', lbl:'電話鈴聲',desc:'接起電話前循環播放'}
+];
+
+function renderMedia(){
+  // Fixed images
+  var h='';
+  FIXED_IMG.forEach(function(s){
+    h+=imgCardHtml(s.key,s.lbl,s.desc,s.type,false);
+  });
+  document.getElementById('img-grid').innerHTML=h;
+  FIXED_IMG.forEach(function(s){loadImgThumb(s.key);});
+
+  // Custom images
+  renderCustomImgs();
+
+  // Fixed audio
+  var ah='';
+  FIXED_AU.forEach(function(s){ah+=audioRowHtml(s.key,s.lbl,s.desc,false);});
+  document.getElementById('fixed-audio-list').innerHTML=ah;
+  FIXED_AU.forEach(function(s){loadAudioPlayer(s.key);});
+
+  // Custom audio
+  renderCustomAudios();
+}
+
+function imgCardHtml(key,lbl,desc,type,canDel){
+  var h='<div class="img-card" id="ic-'+key+'">';
+  h+='<div class="img-thumb" id="ip-'+key+'">載入中…</div>';
+  h+='<div class="img-label">'+esc(lbl)+'</div>';
+  h+='<div class="img-desc">'+esc(desc)+'</div>';
+  h+='<div style="display:flex;gap:4px;margin-bottom:4px;">';
+  h+='<label class="btn btn-p btn-sm" style="flex:1;justify-content:center;cursor:pointer;" for="if-'+key+'">上傳</label>';
+  h+='<input type="file" id="if-'+key+'" accept="image/*" style="display:none" onchange="uploadImg(\''+key+'\',this,function(){loadImgThumb(\''+key+'\');refreshLayoutSprite(\''+key+'\');})">';
+  if(type==='sprite'){
+    h+='<button class="btn btn-g btn-sm" onclick="removeBg(\''+key+'\')">去背</button>';
+  }
+  if(canDel){
+    h+='<button class="btn btn-d btn-sm" onclick="delCustomImg(\''+key+'\')">刪</button>';
+  }else{
+    h+='<button class="btn btn-d btn-sm" onclick="delImg(\''+key+'\')">清除</button>';
+  }
+  h+='</div>';
+  h+='<div class="dz" style="font-size:10px;padding:6px;" id="dz-'+key+'"'
+    +' ondragover="dzOver(event,\'dz-'+key+'\')" ondragleave="dzOut(\'dz-'+key+'\')"'
+    +' ondrop="dzDropImg(event,\''+key+'\',\'dz-'+key+'\',function(){loadImgThumb(\''+key+'\');refreshLayoutSprite(\''+key+'\');})">拖拉圖片</div>';
+  h+='</div>';
+  return h;
+}
+function renderCustomImgs(){
+  var ci=G.customImages||[];
+  var h='';
+  ci.forEach(function(s){h+=imgCardHtml(s.key,s.label,s.type==='sprite'?'自訂立繪':'自訂背景',s.type,true);});
+  document.getElementById('custom-img-list').innerHTML=h;
+  ci.forEach(function(s){loadImgThumb(s.key);});
+}
+
+function audioRowHtml(key,lbl,desc,canDel){
+  var h='<div class="audio-row" id="ar-'+key+'">';
+  h+='<div style="min-width:100px;"><div class="audio-name">'+esc(lbl)+'</div><div class="audio-desc">'+esc(desc)+'</div></div>';
+  h+='<audio id="ap-'+key+'" controls></audio>';
+  h+='<label class="btn btn-p btn-sm" style="cursor:pointer;" for="af-'+key+'">上傳</label>';
+  h+='<input type="file" id="af-'+key+'" accept="audio/*" style="display:none" onchange="uploadAudio(\''+key+'\',this)">';
+  if(canDel){h+='<button class="btn btn-d btn-sm" onclick="delCustomAudio(\''+key+'\')">刪除</button>';}
+  else{h+='<button class="btn btn-d btn-sm" onclick="delAudio(\''+key+'\')">清除</button>';}
+  h+='</div>';
+  return h;
+}
+function renderCustomAudios(){
+  var ca=G.customAudio||[];
+  var h='';
+  ca.forEach(function(a){h+=audioRowHtml(a.key,a.label+(a.loop?'（循環）':'（單次）'),'自訂音效 key:'+a.key,true);});
+  document.getElementById('custom-audio-list').innerHTML=h||'<div class="dim" style="padding:10px;">尚未新增自訂音效</div>';
+  ca.forEach(function(a){loadAudioPlayer(a.key);});
+}
+
+function loadImgThumb(key){
+  loadAsset(key,function(blob){
+    var el=document.getElementById('ip-'+key);if(!el)return;
+    if(blob){
+      var img=document.createElement('img');img.className='img-thumb';img.id='ip-'+key;
+      img.src=URL.createObjectURL(blob);
+      el.parentNode.replaceChild(img,el);
+    }else{el.textContent='（尚未上傳）';}
+  });
+}
+function loadAudioPlayer(key){
+  loadAsset(key,function(blob){
+    var el=document.getElementById('ap-'+key);if(!el)return;
+    if(blob)el.src=URL.createObjectURL(blob);else el.removeAttribute('src');
+  });
+}
+function uploadImg(key,input,cb){
+  var f=input.files[0];if(!f)return;
+  saveAsset(key,f,function(ok){
+    input.value='';
+    if(ok){if(cb)cb();bc('asset-update',{key:key,assetType:'image'});note('圖片「'+key+'」已儲存');}
+    else alert('儲存失敗');
+  });
+}
+function delImg(key){
+  if(!confirm('清除圖片「'+key+'」？'))return;
+  delAsset(key,function(){loadImgThumb(key);bc('asset-update',{key:key,assetType:'image'});});
+}
+function uploadAudio(key,input){
+  var f=input.files[0];if(!f)return;
+  saveAsset(key,f,function(ok){
+    input.value='';
+    if(ok){loadAudioPlayer(key);bc('asset-update',{key:key,assetType:'audio'});note('音訊「'+key+'」已儲存');}
+    else alert('儲存失敗');
+  });
+}
+function delAudio(key){
+  if(!confirm('清除音訊「'+key+'」？'))return;
+  delAsset(key,function(){loadAudioPlayer(key);bc('asset-update',{key:key,assetType:'audio'});});
+}
+function bc(type,extra){if(_bc)_bc.postMessage(Object.assign({type:type},extra||{}));}
+
+/* ── Drag-drop helpers ── */
+function dzOver(e,id){e.preventDefault();var el=document.getElementById(id);if(el)el.classList.add('over');}
+function dzOut(id){var el=document.getElementById(id);if(el)el.classList.remove('over');}
+function dzDropImg(e,key,dzId,cb){
+  e.preventDefault();dzOut(dzId);
+  var f=e.dataTransfer.files[0];if(!f||!f.type.startsWith('image/'))return;
+  saveAsset(key,f,function(ok){if(ok){if(cb)cb();bc('asset-update',{key:key,assetType:'image'});}});
+}
+
+/* ── Background removal (white BG) ── */
+function removeBg(key){
+  loadAsset(key,function(blob){
+    if(!blob){alert('請先上傳圖片');return;}
+    var thr=parseInt(prompt('去背閾值（建議 200–240，數字越大去除範圍越大）','220')||'220');
+    if(isNaN(thr))return;
+    var img=new Image(),url=URL.createObjectURL(blob);
+    img.onload=function(){
+      var c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      var ctx=c.getContext('2d');ctx.drawImage(img,0,0);
+      var d=ctx.getImageData(0,0,c.width,c.height),px=d.data;
+      for(var i=0;i<px.length;i+=4){
+        if(px[i]>thr&&px[i+1]>thr&&px[i+2]>thr)px[i+3]=0;
+      }
+      ctx.putImageData(d,0,0);
+      c.toBlob(function(b){
+        saveAsset(key,b,function(ok){
+          URL.revokeObjectURL(url);
+          if(ok){loadImgThumb(key);refreshLayoutSprite(key);bc('asset-update',{key:key,assetType:'image'});note('去背完成：'+key);}
+        },'image/png');
+      });
+    };
+    img.src=url;
+  });
+}
+
+/* ── Custom audio/img management ── */
+function addCustomAudio(){document.getElementById('au-key').value='';document.getElementById('au-label').value='';document.getElementById('audio-modal').classList.add('on');}
+function closeAudioModal(){document.getElementById('audio-modal').classList.remove('on');}
+function confirmAddAudio(){
+  var key=document.getElementById('au-key').value.trim().replace(/\s+/g,'-');
+  var lbl=document.getElementById('au-label').value.trim();
+  var lp=document.getElementById('au-loop').value==='true';
+  if(!key){alert('請填寫識別名稱');return;}
+  if(G.customAudio.some(function(a){return a.key===key;})){alert('此名稱已存在');return;}
+  G.customAudio.push({key:key,label:lbl||key,loop:lp});
+  closeAudioModal();renderCustomAudios();dirty();
+}
+function delCustomAudio(key){
+  if(!confirm('刪除音效「'+key+'」？'))return;
+  G.customAudio=G.customAudio.filter(function(a){return a.key!==key;});
+  delAsset(key,function(){});renderCustomAudios();dirty();
+}
+
+function addCustomImg(){document.getElementById('ci-key').value='';document.getElementById('ci-label').value='';document.getElementById('cimg-modal').classList.add('on');}
+function confirmAddImg(){
+  var key=document.getElementById('ci-key').value.trim().replace(/\s+/g,'-');
+  var lbl=document.getElementById('ci-label').value.trim();
+  var type=document.getElementById('ci-type').value;
+  if(!key){alert('請填寫識別名稱');return;}
+  if(G.customImages.some(function(s){return s.key===key;})){alert('此名稱已存在');return;}
+  G.customImages.push({key:key,label:lbl||key,type:type});
+  document.getElementById('cimg-modal').classList.remove('on');
+  renderCustomImgs();dirty();
+}
+function delCustomImg(key){
+  if(!confirm('刪除「'+key+'」？'))return;
+  G.customImages=G.customImages.filter(function(s){return s.key!==key;});
+  delAsset(key,function(){});renderCustomImgs();dirty();
+}
+
+/* ══ Layout (drag-to-position) ══ */
+var _lpDrag=null,_lpOffX=0,_lpOffY=0;
+
+function allSpriteKeys(){
+  var keys=['sp-yuyan','sp-yuyan-1908','sp-yanqi'];
+  if(G.customImages)G.customImages.forEach(function(s){if(s.type==='sprite')keys.push(s.key);});
+  return keys;
+}
+
+function renderLayout(){
+  layoutLoadBg(document.getElementById('layout-bg-sel').value);
+  var lp=document.getElementById('layout-preview');
+  // Remove old sprite divs (keep bg img + lp-dlg + lp-inv-bar)
+  Array.from(lp.querySelectorAll('.lp-sprite')).forEach(function(el){el.remove();});
+  // Add sprites
+  allSpriteKeys().forEach(function(key){addLpSprite(key);});
+  renderSpriteSliders();
+  syncLpMockup();
+}
+/* 把 appear 設定值套進 layout 預覽的對話框 mockup，比例依預覽寬度換算 */
+function syncLpMockup(){
+  var a=G.appear||{};
+  var lp=document.getElementById('layout-preview');if(!lp)return;
+  var scale=lp.offsetWidth/960;if(!scale||scale<.1)scale=.4;
+  var dlgH=Math.max(40,(a.dialogHeight||96)*scale);
+  var invH=Math.max(18,28*scale);
+  lp.style.setProperty('--lp-dlg-h',dlgH+'px');
+  lp.style.setProperty('--lp-inv-h',invH+'px');
+  updateApPrev();
+}
+/* 外觀設定改變時也重新同步 mockup（從 appear 頁輸入 oninput 觸發） */
+window.addEventListener('resize',function(){
+  if(document.getElementById('panel-layout').classList.contains('on'))syncLpMockup();
+});
+
+function addLpSprite(key){
+  loadAsset(key,function(blob){
+    if(!blob)return;
+    var url=URL.createObjectURL(blob);
+    var lp=document.getElementById('layout-preview');if(!lp)return;
+    // Remove existing
+    var old=document.getElementById('lpd-'+key);if(old)old.remove();
+    var l=getSL(key);
+    var div=document.createElement('div');
+    div.className='lp-sprite';div.id='lpd-'+key;
+    div.style.left=l.x+'%';div.style.bottom=(l.yBottom||0)+'%';div.style.width=(l.w||35)+'%';
+    var lbl=document.createElement('div');lbl.className='lp-label';lbl.textContent=key;
+    var img=document.createElement('img');img.src=url;
+    /* 與遊戲 .sprite img 一致：width:100% + height:auto，高度由圖片比例決定 */
+    img.style.cssText='width:100%;height:auto;object-fit:contain;display:block;';
+    div.appendChild(lbl);div.appendChild(img);
+    div.addEventListener('mousedown',function(e){
+      _lpDrag=key;
+      var r=div.getBoundingClientRect();
+      _lpOffX=e.clientX-r.left;_lpOffY=e.clientY-r.top;
+      e.preventDefault();
+    });
+    /* 滑鼠滾輪 = 改寬度 */
+    div.addEventListener('wheel',function(e){
+      e.preventDefault();
+      var sc=e.deltaY<0?1.05:0.95;
+      var l=getSL(key);
+      var newW=Math.max(5,Math.min(100,Math.round((l.w||35)*sc*10)/10));
+      if(!G.spriteLayout)G.spriteLayout={};
+      if(!G.spriteLayout[key])G.spriteLayout[key]={x:50,yBottom:0,w:35};
+      G.spriteLayout[key].w=newW;
+      div.style.width=newW+'%';
+      dirty();
+    },{passive:false});
+    /* 觸控：1 指拖移、2 指縮放寬度 */
+    var _spritePinch=0;
+    div.addEventListener('touchstart',function(e){
+      if(e.touches.length===2){
+        _lpDrag=null;
+        _spritePinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                                 e.touches[0].clientY-e.touches[1].clientY);
+      }else if(e.touches.length===1){
+        _lpDrag=key;
+        var t=e.touches[0],r=div.getBoundingClientRect();
+        _lpOffX=t.clientX-r.left;_lpOffY=t.clientY-r.top;
+      }
+      e.preventDefault();
+    },{passive:false});
+    div.addEventListener('touchmove',function(e){
+      if(e.touches.length===2&&_spritePinch){
+        var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,
+                         e.touches[0].clientY-e.touches[1].clientY);
+        var sc=d/_spritePinch;
+        if(Math.abs(sc-1)>0.04){
+          var l=getSL(key);
+          var newW=Math.max(5,Math.min(100,Math.round((l.w||35)*sc*10)/10));
+          if(!G.spriteLayout)G.spriteLayout={};
+          if(!G.spriteLayout[key])G.spriteLayout[key]={x:50,yBottom:0,w:35};
+          G.spriteLayout[key].w=newW;
+          div.style.width=newW+'%';
+          _spritePinch=d;dirty();
+        }
+        e.preventDefault();
+      }
+    },{passive:false});
+    div.addEventListener('touchend',function(e){
+      if(e.touches.length<2)_spritePinch=0;
+    });
+    lp.appendChild(div);
+  });
+}
+
+function refreshLayoutSprite(key){
+  var old=document.getElementById('lpd-'+key);
+  if(old){old.remove();}
+  addLpSprite(key);
+}
+
+document.addEventListener('mousemove',function(e){
+  if(!_lpDrag)return;
+  moveLpSprite(_lpDrag,e.clientX,e.clientY);
+});
+document.addEventListener('touchmove',function(e){
+  if(!_lpDrag)return;
+  moveLpSprite(_lpDrag,e.touches[0].clientX,e.touches[0].clientY);
+  e.preventDefault();
+},{passive:false});
+document.addEventListener('mouseup',function(){_lpDrag=null;});
+document.addEventListener('touchend',function(){_lpDrag=null;});
+
+function moveLpSprite(key,cx,cy){
+  var lp=document.getElementById('layout-preview');if(!lp)return;
+  var lpR=lp.getBoundingClientRect();
+  var div=document.getElementById('lpd-'+key);if(!div)return;
+  var x=(cx-lpR.left-_lpOffX)/lpR.width*100;
+  var y=(lpR.bottom-cy-(div.offsetHeight-_lpOffY))/lpR.height*100;
+  x=Math.max(0,Math.min(95,x));y=Math.max(0,Math.min(95,y));
+  div.style.left=x+'%';div.style.bottom=y+'%';
+  if(!G.spriteLayout)G.spriteLayout={};
+  if(!G.spriteLayout[key])G.spriteLayout[key]={x:50,yBottom:0,w:35};
+  G.spriteLayout[key].x=Math.round(x*10)/10;
+  G.spriteLayout[key].yBottom=Math.round(y*10)/10;
+  dirty();
+}
+
+function layoutLoadBg(key){
+  loadAsset(key,function(blob){
+    var img=document.getElementById('lp-bg-img');if(!img)return;
+    img.src=blob?URL.createObjectURL(blob):'';
+  });
+}
+
+function getSL(key){return (G.spriteLayout&&G.spriteLayout[key])||{x:50,yBottom:0,w:35};}
+
+function renderSpriteSliders(){
+  var h='';
+  allSpriteKeys().forEach(function(key){
+    var l=getSL(key);
+    h+='<div class="fld"><label>'+esc(key)+'</label>';
+    h+='<div style="display:flex;gap:8px;align-items:center;">';
+    h+='<span class="dim" style="min-width:32px;">寬度</span>';
+    h+='<div class="rrow" style="flex:1"><input type="range" min="5" max="100" value="'+l.w+'"'
+      +' oninput="updSW(\''+key+'\',this.value)">'
+      +'<span class="rval" id="sw-v-'+key+'">'+l.w+'%</span></div>';
+    h+='</div></div>';
+  });
+  document.getElementById('sprite-size-list').innerHTML=h||'<div class="dim">請先在「圖片/音訊」上傳立繪圖片</div>';
+}
+
+function updSW(key,val){
+  if(!G.spriteLayout)G.spriteLayout={};
+  if(!G.spriteLayout[key])G.spriteLayout[key]={x:50,yBottom:0,w:35};
+  G.spriteLayout[key].w=parseInt(val);
+  document.getElementById('sw-v-'+key).textContent=val+'%';
+  var div=document.getElementById('lpd-'+key);if(div)div.style.width=val+'%';
+  dirty();
+}
+
+/* ══ Appear ══ */
+var AP=[
+  {k:'dialogFont',   lbl:'對話文字大小',    dflt:20},
+  {k:'speakerFont',  lbl:'說話者名稱大小',  dflt:19},
+  {k:'dialogHeight', lbl:'對話框高度',       dflt:140},
+  {k:'dialogPad',    lbl:'對話框內距',       dflt:18},
+  {k:'dialogBottom', lbl:'對話框底部距離',   dflt:10},
+  {k:'chMainFont',   lbl:'章節主標題大小',   dflt:44},
+  {k:'chJpFont',     lbl:'章節副標（日文）大小', dflt:20},
+  {k:'chSubFont',    lbl:'章節副標（中文）大小', dflt:12}
+];
+function renderAppear(){
+  /* 用同一個 layout-preview，讓使用者直接拖立繪/對話框、雙指縮放對話文字＋章節文字 */
+  layoutLoadBg(document.getElementById('layout-bg-sel').value);
+  var lp=document.getElementById('layout-preview');
+  Array.from(lp.querySelectorAll('.lp-sprite')).forEach(function(el){el.remove();});
+  allSpriteKeys().forEach(function(key){addLpSprite(key);});
+  syncLpMockup();
+  bindApGestures();
+}
+function toggleApChapter(){
+  var ch=document.getElementById('lp-ch'),btn=document.getElementById('ap-ch-toggle');
+  var on=ch.style.display==='none';
+  ch.style.display=on?'flex':'none';
+  if(btn)btn.textContent=on?'隱藏章節預覽':'顯示章節預覽';
+}
+
+/* ── 拖動／雙指縮放：直接在 layout-preview 上操作，寫回 G.appear ── */
+var _apGesturesBound=false;
+function bindApGestures(){
+  if(_apGesturesBound)return;_apGesturesBound=true;
+  var dlg=document.getElementById('lp-dlg');
+  if(dlg)attachGesture(dlg,{
+    /* 對話框：垂直拖動 = 改 dialogHeight（往上拖變高） */
+    onDragY:function(dy){adjustAp('dialogHeight',dy*-0.6);},
+  });
+  var dtxt=document.getElementById('lp-dlg-text');
+  if(dtxt)attachGesture(dtxt,{
+    /* 對話文字：雙指縮放 / 滾輪 = 改 dialogFont */
+    onPinch:function(sc){adjustAp('dialogFont',null,sc);}
+  });
+  [['jp','chJpFont'],['main','chMainFont'],['sub','chSubFont']].forEach(function(p){
+    var el=document.getElementById('lp-ch-'+p[0]);if(!el)return;
+    attachGesture(el,{
+      onDragY:function(dy){adjustAp(p[1],dy*-0.1);},
+      onPinch:function(sc){adjustAp(p[1],null,sc);}
+    });
+  });
+}
+function adjustAp(key,delta,scale){
+  if(!G.appear)G.appear={};
+  var dflt=(AP.find(function(f){return f.k===key;})||{}).dflt||20;
+  var cur=G.appear[key]!=null?G.appear[key]:dflt;
+  var next=cur;
+  if(delta!=null)next=cur+delta;
+  if(scale!=null)next=cur*scale;
+  next=Math.max(8,Math.min(400,Math.round(next)));
+  if(next===cur)return;
+  G.appear[key]=next;
+  updateApPrev();syncLpMockup();dirty();
+}
+function attachGesture(el,handlers){
+  el.style.touchAction='none';
+  el.style.cursor='ns-resize';
+  var start={y:0,dist:0,pinching:false,baseScale:1};
+  function dist(ts){
+    var dx=ts[0].clientX-ts[1].clientX,dy=ts[0].clientY-ts[1].clientY;
+    return Math.sqrt(dx*dx+dy*dy);
+  }
+  el.addEventListener('touchstart',function(e){
+    if(e.touches.length===2){
+      start.pinching=true;start.dist=dist(e.touches);start.baseScale=1;
+    }else if(e.touches.length===1){
+      start.pinching=false;start.y=e.touches[0].clientY;
+    }
+    e.preventDefault();
+  },{passive:false});
+  el.addEventListener('touchmove',function(e){
+    if(start.pinching&&e.touches.length===2){
+      var d=dist(e.touches),sc=d/start.dist;
+      var step=sc/start.baseScale;
+      if(Math.abs(step-1)>0.02){handlers.onPinch&&handlers.onPinch(step);start.baseScale=sc;}
+    }else if(!start.pinching&&e.touches.length===1){
+      var y=e.touches[0].clientY,dy=y-start.y;
+      if(Math.abs(dy)>=2){handlers.onDragY&&handlers.onDragY(dy);start.y=y;}
+    }
+    e.preventDefault();
+  },{passive:false});
+  /* 滑鼠：垂直拖；滾輪/Ctrl+滾輪=縮放 */
+  var mouseDown=false,lastY=0;
+  el.addEventListener('mousedown',function(e){mouseDown=true;lastY=e.clientY;e.preventDefault();});
+  document.addEventListener('mousemove',function(e){
+    if(!mouseDown)return;
+    var dy=e.clientY-lastY;if(Math.abs(dy)>=2){handlers.onDragY&&handlers.onDragY(dy);lastY=e.clientY;}
+  });
+  document.addEventListener('mouseup',function(){mouseDown=false;});
+  el.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var sc=e.deltaY<0?1.05:0.95;
+    handlers.onPinch&&handlers.onPinch(sc);
+  },{passive:false});
+}
+function apV(k,dflt){return (G.appear&&G.appear[k]!=null)?G.appear[k]:dflt;}
+function updateApPrev(){
+  /* 將目前 G.appear 套到 layout-preview 上的對話框 / 章節 mockup */
+  var lp=document.getElementById('layout-preview');if(!lp)return;
+  var scale=lp.offsetWidth/960;if(!scale||scale<.1)scale=.4;
+  var spk=document.getElementById('lp-dlg-spk');
+  if(spk)spk.style.fontSize=Math.max(8,apV('speakerFont',17)*scale)+'px';
+  var txt=document.getElementById('lp-dlg-text');
+  if(txt)txt.style.fontSize=Math.max(9,apV('dialogFont',20)*scale)+'px';
+  var jp=document.getElementById('lp-ch-jp');
+  if(jp)jp.style.fontSize=Math.max(9,apV('chJpFont',20)*scale)+'px';
+  var mn=document.getElementById('lp-ch-main');
+  if(mn)mn.style.fontSize=Math.max(12,apV('chMainFont',44)*scale)+'px';
+  var sb=document.getElementById('lp-ch-sub');
+  if(sb)sb.style.fontSize=Math.max(8,apV('chSubFont',12)*scale)+'px';
+}
+function collectAppear(){/* 已即時寫入 G.appear，不需收集 */}
+
+/* ══ 關卡（addable list；兩個內建關卡 + 自訂） ══ */
+var _curLv=0;
+function renderLevels(){
+  if(!Array.isArray(G.levels)||!G.levels.length){
+    G.levels=[{id:'lv1',name:'關卡一',type:'switchboard'},
+              {id:'lv2',name:'關卡二',type:'hint-gate'}];
+  }
+  if(_curLv>=G.levels.length)_curLv=0;
+  /* 分頁列 */
+  var tabs=G.levels.map(function(lv,i){
+    return '<button class="chtab'+(i===_curLv?' on':'')+'" onclick="switchLv('+i+')">'
+      +esc(lv.name||('關卡'+(i+1)))+'</button>';
+  }).join('');
+  document.getElementById('lv-tabs').innerHTML=tabs;
+  /* 主體 */
+  var lv=G.levels[_curLv];
+  var body=document.getElementById('lv-body');
+  body.innerHTML=lvBodyHtml(lv,_curLv);
+  /* 依類型載入內容 */
+  if(lv.type==='switchboard'){fillSwitchboardLv();}
+  else if(lv.type==='hint-gate'){fillHintGateLv();}
+  else if(lv.type==='bagua'){fillBaguaLv();}
+  else if(lv.type==='puzzle'){fillPuzzleLv();}
+  else if(lv.type==='sortbins'){fillSortbinsLv();}
+  else if(lv.type==='sortbins2'){fillSortbins2Lv();}
+  else if(lv.type==='brickmold'){fillBrickmoldLv();}
+  else if(lv.type==='phylock'){fillPhylockLv();}
+}
+function switchLv(i){_curLv=i;renderLevels();}
+function addLevel(){
+  var n=G.levels.length+1;
+  G.levels.push({id:'lv'+n,name:'關卡'+toCN(n),type:'custom'});
+  _curLv=G.levels.length-1;
+  renderLevels();dirty();
+}
+function delLevel(i){
+  if(G.levels.length<=1){alert('至少需保留 1 個關卡');return;}
+  if(!confirm('刪除「'+(G.levels[i].name||'')+'」？此關卡的設定資料不會被刪，僅移除分頁。'))return;
+  G.levels.splice(i,1);_curLv=Math.max(0,_curLv-1);renderLevels();dirty();
+}
+function toCN(n){var arr=['','一','二','三','四','五','六','七','八','九','十'];return arr[n]||String(n);}
+
+function lvBodyHtml(lv,i){
+  var top='<div class="bar">'
+    +'<div class="fld" style="flex:1;margin-bottom:0;"><label>關卡名稱</label>'
+    +'<input type="text" value="'+esc(lv.name||'')+'" oninput="G.levels['+i+'].name=this.value;dirty();renderLevelTabs();"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>類型</label>'
+    +'<select onchange="G.levels['+i+'].type=this.value;dirty();renderLevels();" style="width:160px;">'
+    +'<option value="switchboard"'+(lv.type==='switchboard'?' selected':'')+'>手動交換機</option>'
+    +'<option value="hint-gate"'+(lv.type==='hint-gate'?' selected':'')+'>鎖住頁／提示商城</option>'
+    +'<option value="bagua"'+(lv.type==='bagua'?' selected':'')+'>壁龕／八卦封印</option>'
+    +'<option value="puzzle"'+(lv.type==='puzzle'?' selected':'')+'>5×5 記憶翻牌拼圖</option>'
+    +'<option value="sortbins"'+(lv.type==='sortbins'?' selected':'')+'>歸納關 A（班次→線）</option>'
+    +'<option value="sortbins2"'+(lv.type==='sortbins2'?' selected':'')+'>歸納關 B（線→站名）</option>'
+    +'<option value="brickmold"'+(lv.type==='brickmold'?' selected':'')+'>開模印花（紅磚花磚）</option>'
+    +'<option value="phylock"'+(lv.type==='phylock'?' selected':'')+'>電磁鎖（ESP32 連動）</option>'
+    +'<option value="custom"'+(lv.type==='custom'?' selected':'')+'>自訂（暫無設定）</option>'
+    +'</select></div>'
+    +'<button class="btn btn-d btn-sm" onclick="delLevel('+i+')">刪除</button>'
+    +'</div>';
+  if(lv.type==='switchboard')return top+lvSwitchboardHtml();
+  if(lv.type==='hint-gate')  return top+lvHintGateHtml();
+  if(lv.type==='bagua')      return top+lvBaguaHtml();
+  if(lv.type==='puzzle')     return top+lvPuzzleHtml();
+  if(lv.type==='sortbins')   return top+lvSortbinsHtml();
+  if(lv.type==='sortbins2')  return top+lvSortbins2Html();
+  if(lv.type==='brickmold')  return top+lvBrickmoldHtml();
+  if(lv.type==='phylock')    return top+lvPhylockHtml();
+  return top+'<div class="sec"><div class="dim" style="padding:10px;text-align:center;font-size:12px;">自訂關卡：尚無內建編輯介面，腳本中以 <code>{t:\'stage\',id:\'你的舞台 ID\'}</code> 觸發。</div></div>';
+}
+function renderLevelTabs(){
+  var tabs=G.levels.map(function(lv,i){
+    return '<button class="chtab'+(i===_curLv?' on':'')+'" onclick="switchLv('+i+')">'
+      +esc(lv.name||('關卡'+(i+1)))+'</button>';
+  }).join('');
+  document.getElementById('lv-tabs').innerHTML=tabs;
+}
+
+/* ── 關卡：手動交換機（分機 + 通話 + 文字） ── */
+function lvSwitchboardHtml(){
+  return '<div class="sec"><div class="sec-title">分機（最多 16 個）</div>'
+    +'<div class="bar"><button class="btn btn-p btn-sm" onclick="addJack()">＋ 新增分機</button></div>'
+    +'<div id="jack-list"></div></div>'
+    +'<div class="sec"><div class="sec-title">通話劇情</div>'
+    +'<div class="bar"><button class="btn btn-p btn-sm" onclick="addCall()">＋ 新增通話</button></div>'
+    +'<div id="call-list"></div></div>'
+    +'<div class="sec"><div class="sec-title">交換機介面文字</div>'
+    +fld('面板標題','stg-sb-title','手動交換臺')
+    +fld('跳線名稱前綴（例：「跳線 」→ 跳線 A / 跳線 B）','stg-sb-cord','跳線 ')
+    +fld('呼叫橫幅「發話」標籤','stg-sb-from','發話')
+    +fld('呼叫橫幅「受話」標籤','stg-sb-to','受話')
+    +fld('「下一通」按鈕文字','stg-sb-next','下一通')
+    +fld('「結束作業」按鈕文字','stg-sb-done','結束作業')
+    +fld('對白逐行出現間隔（毫秒）','stg-sb-dly','2400','number')
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">電話亭（phone-ring）文字</div>'
+    +fld('提示文字（電話響起時顯示）','stg-pr-prompt','電話響起……')
+    +fld('按鈕文字','stg-pr-btn','接起電話')
+    +'</div>';
+}
+function fillSwitchboardLv(){
+  renderJacks();renderCalls();
+  var st=G.stages||{},pr=st.phoneRing||{},sb=st.switchboard||{};
+  setVal('stg-pr-prompt',pr.prompt||'電話響起……');
+  setVal('stg-pr-btn',pr.btn||'接起電話');
+  setVal('stg-sb-title',sb.title||'手動交換臺');
+  setVal('stg-sb-cord',sb.cordPrefix!=null?sb.cordPrefix:'跳線 ');
+  setVal('stg-sb-from',sb.fromLabel||'發話');
+  setVal('stg-sb-to',sb.toLabel||'受話');
+  setVal('stg-sb-next',sb.nextBtn||'下一通');
+  setVal('stg-sb-done',sb.doneBtn||'結束作業');
+  setVal('stg-sb-dly',sb.dialogDelay||2400);
+}
+
+/* ── 關卡：鎖住頁／提示商城 ── */
+function lvHintGateHtml(){
+  return '<div class="sec"><div class="sec-title">地圖道具（玩家從劇情取得，存入道具欄）</div>'
+    +'<p class="dim" style="margin-bottom:8px;font-size:11px;">圖片請至「圖片／音訊」上傳 <code>map</code>。</p>'
+    +fld('地圖說明文字（保留欄位，目前不顯示給玩家）','map-prompt','','textarea')
+    +fld('（保留欄位）按鈕文字','map-btn-text','繼續前往')
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">鎖住頁（hint-gate）參數</div>'
+    +fld('燈泡出現延遲（秒，預設 10）','stg-hg-delay','10','number')
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">提示商城（玩家點燈泡 → 是 → 看到此文字）</div>'
+    +fld('提示字詞（謎語／告知玩家要拍什麼）','hs-text','','textarea')
+    +fld('購買按鈕文字','hs-btn','以照片購買')
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">拍照比對</div>'
+    +'<p class="dim" style="margin-bottom:8px;font-size:11px;">參考照片與線索照片請至「圖片／音訊」上傳（<code>stage2-ref</code> / <code>hint-photo</code>）。</p>'
+    +fld('相似度門檻（0–100，建議 60–75）','s2-thr','70','number')
+    +fld('揭露頁前綴（小字，如：您購得的線索）','s2-prefix','您購得的線索')
+    +'<div class="fld" style="background:rgba(194,80,40,.08);border:1px solid var(--gold-dim);border-radius:3px;padding:10px 12px;">'
+    +'<label style="color:var(--gold);font-weight:600;">🔐 通關密碼（玩家需在鎖住頁輸入此字串）</label>'
+    +'<input type="text" id="s2-answer" placeholder="臺中驛" style="font-size:16px;letter-spacing:.15em;color:var(--gold);" oninput="dirty()">'
+    +'<span class="dim" style="font-size:10px;margin-top:4px;display:block;">※ 不會顯示給玩家，玩家需從謎語＋線索照片自己推。</span>'
+    +'</div>'
+    +'<div class="bar mt12">'
+    +'<label class="btn btn-g btn-sm" for="s2-file2" style="cursor:pointer;">上傳比對參考照片（stage2-ref）</label>'
+    +'<input type="file" id="s2-file2" accept="image/*" style="display:none" onchange="uploadImg(\'stage2-ref\',this)">'
+    +'<div id="s2-prev2" class="dim" style="font-size:11px;"></div>'
+    +'</div>'
+    +'</div>';
+}
+function fillHintGateLv(){
+  var m=G.map||{},hs=G.hintShop||{},s=G.stage2||{},st=G.stages||{},hg=st.hintGate||{};
+  setVal('map-prompt',m.promptText||'');
+  setVal('map-btn-text',m.buttonText||'繼續前往');
+  setVal('hs-text',hs.hintText||'');
+  setVal('hs-btn',hs.payBtnText||'以照片購買');
+  setVal('s2-thr',s.threshold||70);
+  setVal('s2-prefix',s.hintPrefix||'您購得的線索');
+  setVal('s2-answer',s.hintAnswer||'');
+  setVal('stg-hg-delay',hg.bulbDelay!=null?hg.bulbDelay:10);
+  loadAsset('stage2-ref',function(blob){
+    var el=document.getElementById('s2-prev2');if(!el)return;
+    el.textContent=blob?'已上傳 ✓':'（尚未上傳）';
+  });
+}
+
+/* ── 關卡：壁龕／八卦封印（niche + bagua） ── */
+var BAGUA_LV_LAYERS=[
+  {idx:1,zh:'咸',sub:'澤山咸　初見・一見鍾情',order:'澤 → 山'},
+  {idx:2,zh:'蒙',sub:'山水蒙　曖昧・若即若離',order:'山 → 水'},
+  {idx:3,zh:'夬',sub:'澤天夬　告白・鼓起勇氣',order:'澤 → 天'},
+  {idx:4,zh:'革',sub:'澤火革　熱戀・世界改變',order:'澤 → 火'},
+  {idx:5,zh:'家人',sub:'風火家人　同居・初次摩擦',order:'風 → 火'},
+  {idx:6,zh:'睽',sub:'火澤睽　第一次吵架',order:'火 → 澤'},
+  {idx:7,zh:'習坎',sub:'坎為水　冷戰・沉默深淵',order:'水 → 水'},
+  {idx:8,zh:'渙',sub:'風水渙　鬧分手・穿越當天',order:'風 → 水'}
+];
+function lvPuzzleHtml(){
+  var html='<div class="sec"><div class="sec-title">5×5 記憶翻牌拼圖</div>'
+    +'<p class="dim" style="margin-bottom:10px;line-height:1.85;font-size:11px;">'
+    +'<b>遊戲玩法（同時間只能翻一張、每張各 2 下才能完成交換）：</b><br>'
+    +'1. 25 張卡牌全部背面朝下、隨機洗牌（保證沒有任何一張一開始就在正確位置）。<br>'
+    +'2. 點背面卡 → peek 2 秒，期間不能再翻其他張，多點別張 = 1 次錯誤（同次 peek 內不重複算）。<br>'
+    +'3. peek 期間點同一張 → 鎖定為「已選」（金光、停留正面）。<br>'
+    +'4. 對另一張先 peek（第 1 下）、再點同一張（第 2 下）→ 兩張交換位置。<br>'
+    +'5. 每塊就位（編號 N 在第 N 格）→ 鎖定綠光、不再可點；錯的 2 秒後翻回背面。<br>'
+    +'6. 交換後正確數沒增加 = 1 次錯誤。錯誤累積 5 次 → 全部打亂重來。<br>'
+    +'7. 25 塊全部就位 → 拼圖完成 → 揭露背面合照 → 滑塊・二入道具欄 → 進下一段劇情。'
+    +'</p>'
+    +'<div class="fld"><label>規則燈泡顯示文字（玩家點右上角💡看到；留空使用預設）</label>'
+    +'<textarea id="pz-rules" rows="6" oninput="dirty()" placeholder="（留空使用預設規則說明）"></textarea></div>'
+    +'</div>'
+    /* 背面合照上傳格 */
+    +'<div class="sec"><div class="sec-title">拼圖背面合照（解開後揭露）</div>'
+    +'<p class="dim" style="margin-bottom:10px;font-size:11px;line-height:1.8;">'
+    +'25 塊全部就位後，整面拼圖會翻過去顯示這張合照。<br>'
+    +'語嫣會看到一張「模糊的合照」——她與雁淇的合照，但看不清雁淇的臉。<br>'
+    +'所以這張圖建議刻意做得有點模糊／失真效果（遊戲端也會自動加 1.2px 模糊濾鏡）。'
+    +'</p>'
+    +'<div class="bagua-up-cell" style="max-width:240px;" data-label="背面合照">'
+      +'<div class="bagua-up-thumb" id="ba-up-thumb-puzzle-back-photo">背面合照</div>'
+      +'<input type="file" id="ba-up-file-puzzle-back-photo" accept="image/*" style="display:none" onchange="uploadBaguaImg(\'puzzle-back-photo\',this)">'
+      +'<div class="bagua-up-actions">'
+        +'<label class="btn btn-p btn-sm" for="ba-up-file-puzzle-back-photo" style="cursor:pointer;">上傳</label>'
+        +'<button class="btn btn-d btn-sm" onclick="delBaguaImg(\'puzzle-back-photo\')">×</button>'
+      +'</div></div>'
+    +'</div>';
+  /* 25 塊拼圖上傳格 */
+  html+='<div class="sec"><div class="sec-title">拼圖塊上傳（5×5，25 塊）</div>'
+    +'<p class="dim" style="margin-bottom:10px;line-height:1.8;font-size:11px;">'
+    +'依閱讀順序：左上 #1、右上 #5、左下 #21、右下 #25。<br>'
+    +'尚未上傳的格在遊戲中會以編號當佔位顯示；只要上傳了圖片，遊戲裡就完全不會顯示編號。<br>'
+    +'25 塊全部上傳後，下方預覽區拼起來就是玩家完成後看到的完整圖。'
+    +'</p>'
+    +'<div class="pz-up-grid">';
+  for(var i=1;i<=25;i++){
+    html+='<div class="pz-up-cell">'
+      +'<div class="pz-up-thumb" id="pz-up-thumb-'+i+'">'
+        +'<span class="pz-up-num">#'+i+'</span>'
+        +'<span style="position:relative;z-index:1;">'+i+'</span>'
+      +'</div>'
+      +'<input type="file" id="pz-up-file-'+i+'" accept="image/*" style="display:none" '
+        +'onchange="uploadPuzzlePiece('+i+',this)">'
+      +'<div class="pz-up-actions">'
+        +'<label class="btn btn-p btn-sm" for="pz-up-file-'+i+'" style="cursor:pointer;">上傳</label>'
+        +'<button class="btn btn-d btn-sm" onclick="delPuzzlePiece('+i+')">×</button>'
+      +'</div>'
+      +'</div>';
+  }
+  html+='</div></div>';
+  return html;
+}
+/* 規則預設文字（與遊戲端 BAGUA_DEFAULT_RULES / PUZZLE_DEFAULT_RULES 同步） */
+var PUZZLE_DEFAULT_RULES_TEXT='・25 張卡牌全部背面朝下、隨機洗牌（保證沒有任何一張一開始就在正確位置）。\n'
+  +'・點背面卡 → 翻成正面（peek 2 秒）。peek 期間不能再翻其他張，多點別張 = 1 次錯誤（同次 peek 內不重複算）。\n'
+  +'・peek 期間點同一張 → 鎖定為「已選」（金光、停留正面）。\n'
+  +'・對另一張先 peek（第 1 下）、再點同一張（第 2 下）→ 兩張交換位置。\n'
+  +'・每塊就位（編號 N 在第 N 格）→ 鎖定綠光、不再可點；錯的 2 秒後翻回背面。\n'
+  +'・交換後正確數沒增加 = 1 次錯誤。錯誤累積 5 次 → 全部打亂重來。\n'
+  +'・25 塊全部就位 → 拼圖完成 → 揭露背面合照 → 滑塊・二入道具欄 → 進下一段劇情。';
+var BAGUA_DEFAULT_RULES_TEXT='・水盆中央八卦圖 8 個方位的卦各代表一段語嫣與雁淇的情感記憶。\n'
+  +'・每一層都有兩個正確的卦要依順序撕下；按錯一張即「反噬」。\n'
+  +'・撕對第一張 → 全部復原 → 撕第二張正確 → 該層完成、藍光閃 → 進下一層。\n'
+  +'・撕完全部八層 → 封印散去。\n'
+  +'・左下角卷軸 📜 為咒文閃現（每段藏卦象暗示）；越往後越只閃幾秒。\n'
+  +'・15 秒後右上會亮起燈泡，點開可看到本關提示圖（後台可上傳）。\n'
+  +'・只要撕錯一個卦就會「反噬」：紅光、整關歸零、咒文回到第一階段。\n'
+  +'・八層全部正確撕開 → 顯示「封印已解」、繼續劇情。';
+
+function fillPuzzleLv(){
+  for(var i=1;i<=25;i++)loadPuzzlePieceThumb(i);
+  /* 預設規則文字直接顯示在 textarea，方便玩家直接編輯 */
+  setVal('pz-rules', G.puzzleRules || PUZZLE_DEFAULT_RULES_TEXT);
+  /* 同時去掉 placeholder，避免「留空使用預設」造成混淆 */
+  var ta=document.getElementById('pz-rules');if(ta)ta.removeAttribute('placeholder');
+  loadBaguaImgThumb('puzzle-back-photo');
+}
+function collectPuzzle(){
+  if(document.getElementById('pz-rules')){
+    /* 直接存使用者打的內容（即使是空字串也存空字串；遊戲端會 fallback 到預設） */
+    G.puzzleRules=gv('pz-rules','');
+  }
+}
+
+/* ── 關卡：電磁鎖（ESP32 連動） ── */
+/* ── 關卡：歸納關 A（班次→線；側邊有時刻表參考） ── */
+function lvSortbinsHtml(){
+  var html='<div class="sec"><div class="sec-title">歸納關 A（班次 → 山線/海線）</div>'
+    +'<p class="dim" style="margin-bottom:10px;line-height:1.85;font-size:11px;">'
+    +'玩家拖曳「班次數字」紙條到對應的線別框。畫面側邊會顯示時刻表參考（每個班次經過哪些車站）。<br>'
+    +'紙條的內容自動由「時刻表（班次列表）」生成，<b>每筆 schedule 對應一張紙條</b>。'
+    +'</p>'
+    +'<div class="fld"><label>標題（顯示在關卡頂端）</label>'
+    +'<input type="text" id="sb-title" placeholder="依時刻表把班次歸入山線或海線" oninput="dirty()"></div>'
+    +'<div class="fld"><label>規則說明（玩家點 ⓘ 看到）</label>'
+    +'<textarea id="sb-help" rows="3" oninput="dirty()"></textarea></div>'
+    +'<div class="fld"><label>最大錯誤數（達到後整關重置：所有班次回池子重洗）</label>'
+    +'<input type="number" id="sb-maxerr" min="1" max="20" value="2" oninput="dirty()" style="width:80px"></div>'
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">線別框（bins）</div>'
+    +'<p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:8px;">每筆班次的「歸屬線」要對應到這裡的 bin ID。</p>'
+    +'<div id="sb-bins-list"></div>'
+    +'<button class="btn btn-p btn-sm mt12" onclick="addSortbinsBin()">＋ 新增線別</button>'
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">時刻表 / 班次列表（schedule）</div>'
+    +'<p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:8px;">'
+    +'班次號（如「1」）會作為紙條文字（會自動加「次」）；經停站建議寫成 <code>臺北→新竹→苗栗→豐原→臺中</code>，玩家會用這條資訊判斷該班次是山線還是海線。'
+    +'</p>'
+    +'<div id="sb-sched-list"></div>'
+    +'<button class="btn btn-p btn-sm mt12" onclick="addSortbinsSched()">＋ 新增班次</button>'
+    +'</div>';
+  return html;
+}
+function fillSortbinsLv(){
+  if(!G.sortbins||!Array.isArray(G.sortbins.schedule)){
+    G.sortbins=JSON.parse(JSON.stringify(_DEFAULT_SORTBINS_ADMIN));
+  }
+  setVal('sb-title',G.sortbins.title||'');
+  setVal('sb-help',G.sortbins.help||'');
+  setVal('sb-maxerr',String(G.sortbins.maxErrors||2));
+  renderSortbinsBins();
+  renderSortbinsSched();
+}
+var _DEFAULT_SORTBINS_ADMIN={
+  title:'依時刻表把班次歸入山線或海線',
+  help:'右側時刻表列出每個班次經過的車站。\n山線經豐原、后里、三義、苗栗、銅鑼等內陸站；海線經大甲、清水、沙鹿、通霄、苑裡等沿海站。\n拖曳左下方的班次紙條到對應的「山線」或「海線」框。\n放錯會退回紙條池並紅閃。\n錯兩次後整關重置：所有班次（含已歸位的）回到池子重新洗牌。',
+  maxErrors:2,
+  bins:[{id:'mountain',label:'山線'},{id:'coast',label:'海線'}],
+  schedule:[
+    {no:'1',line:'mountain',via:'臺北→新竹→苗栗→三義→豐原→臺中→嘉義→臺南→高雄'},
+    {no:'2',line:'coast', via:'臺北→新竹→通霄→苑裡→大甲→清水→沙鹿→臺中'},
+    {no:'3',line:'mountain',via:'臺北→新竹→苗栗→銅鑼→三義→后里→豐原→臺中'},
+    {no:'4',line:'coast', via:'臺中→沙鹿→清水→大甲→苑裡→通霄→新竹→臺北'},
+    {no:'5',line:'mountain',via:'臺中→豐原→后里→三義→銅鑼→苗栗'},
+    {no:'6',line:'coast', via:'臺北→桃園→新竹→通霄→苑裡→大甲→沙鹿→臺中'},
+    {no:'7',line:'mountain',via:'臺中→豐原→苗栗→新竹→桃園→臺北'},
+    {no:'8',line:'coast', via:'臺中→沙鹿→大甲→苑裡→通霄→新竹→臺北'}
+  ]
+};
+function renderSortbinsBins(){
+  var h='';
+  G.sortbins.bins.forEach(function(b,i){
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'
+      +'<span class="dim" style="min-width:48px;font-size:11px;">ID</span>'
+      +'<input type="text" value="'+esc(b.id)+'" style="width:120px" oninput="G.sortbins.bins['+i+'].id=this.value;dirty()">'
+      +'<span class="dim" style="font-size:11px;">名稱</span>'
+      +'<input type="text" value="'+esc(b.label)+'" style="flex:1" oninput="G.sortbins.bins['+i+'].label=this.value;dirty()">'
+      +'<button class="btn btn-d btn-sm" onclick="delSortbinsBin('+i+')">刪</button>'
+      +'</div>';
+  });
+  document.getElementById('sb-bins-list').innerHTML=h||'<div class="dim" style="padding:10px;">（尚無線別框）</div>';
+}
+function addSortbinsBin(){
+  if(!G.sortbins.bins)G.sortbins.bins=[];
+  G.sortbins.bins.push({id:'bin'+(G.sortbins.bins.length+1),label:'新線別'});
+  renderSortbinsBins();renderSortbinsSched();dirty();
+}
+function delSortbinsBin(i){
+  if(!confirm('刪除此線別？對應到此 ID 的班次需另行修改。'))return;
+  G.sortbins.bins.splice(i,1);
+  renderSortbinsBins();renderSortbinsSched();dirty();
+}
+function renderSortbinsSched(){
+  if(!Array.isArray(G.sortbins.schedule))G.sortbins.schedule=[];
+  var h='';
+  var binOpts=G.sortbins.bins.map(function(b){return '<option value="'+esc(b.id)+'">'+esc(b.label)+'</option>';}).join('');
+  G.sortbins.schedule.forEach(function(s,i){
+    var sel=binOpts;
+    if(s.line)sel=binOpts.replace('value="'+esc(s.line)+'"','value="'+esc(s.line)+'" selected');
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">'
+      +'<span class="dim" style="min-width:24px;font-size:11px;">'+(i+1)+'</span>'
+      +'<span class="dim" style="font-size:11px;">班次</span>'
+      +'<input type="text" value="'+esc(s.no||'')+'" placeholder="如 1" style="width:60px" oninput="G.sortbins.schedule['+i+'].no=this.value;dirty()">'
+      +'<span class="dim" style="font-size:11px;">線別</span>'
+      +'<select onchange="G.sortbins.schedule['+i+'].line=this.value;dirty()" style="width:110px;">'+sel+'</select>'
+      +'<span class="dim" style="font-size:11px;">經停站</span>'
+      +'<input type="text" value="'+esc(s.via||'')+'" placeholder="臺北→新竹→…→高雄" style="flex:1;min-width:240px" oninput="G.sortbins.schedule['+i+'].via=this.value;dirty()">'
+      +'<button class="btn btn-d btn-sm" onclick="delSortbinsSched('+i+')">刪</button>'
+      +'</div>';
+  });
+  var listEl=document.getElementById('sb-sched-list');
+  if(listEl)listEl.innerHTML=h||'<div class="dim" style="padding:10px;">（尚無班次）</div>';
+}
+function addSortbinsSched(){
+  if(!Array.isArray(G.sortbins.schedule))G.sortbins.schedule=[];
+  var firstBin=G.sortbins.bins[0]?G.sortbins.bins[0].id:'';
+  G.sortbins.schedule.push({no:String(G.sortbins.schedule.length+1),line:firstBin,via:''});
+  renderSortbinsSched();dirty();
+}
+function delSortbinsSched(i){
+  G.sortbins.schedule.splice(i,1);
+  renderSortbinsSched();dirty();
+}
+function collectSortbins(){
+  if(document.getElementById('sb-title')&&G.sortbins){
+    G.sortbins.title=gv('sb-title','');
+    G.sortbins.help=gv('sb-help','');
+    var meA=parseInt(gv('sb-maxerr',''),10);
+    if(!isNaN(meA)&&meA>0)G.sortbins.maxErrors=meA;
+  }
+  if(document.getElementById('sb2-title')&&G.sortbins2){
+    G.sortbins2.title=gv('sb2-title','');
+    G.sortbins2.help=gv('sb2-help','');
+    var me=parseInt(gv('sb2-maxerr',''),10);
+    if(!isNaN(me)&&me>0)G.sortbins2.maxErrors=me;
+  }
+}
+
+/* ── 關卡：歸納關 B（線 → 站名；錯五次重洗） ── */
+var _DEFAULT_SORTBINS2_ADMIN={
+  title:'將山線、海線分發到各車站',
+  help:'拖曳「山線」或「海線」紙條到符合該線的站名上，正確則站名消失（紙條會回到下方原位）。\n臺中以北的內陸幹線屬山線；沿海支線屬海線。\n錯兩次後整關重置：所有站名（含已消失的）會全部復原並重新打散位置。',
+  lines:[{id:'mountain',label:'山線'},{id:'coast',label:'海線'}],
+  stations:[
+    {name:'豐原',line:'mountain'},{name:'后里',line:'mountain'},
+    {name:'三義',line:'mountain'},{name:'苗栗',line:'mountain'},
+    {name:'銅鑼',line:'mountain'},{name:'臺北',line:'mountain'},
+    {name:'桃園',line:'mountain'},{name:'新竹',line:'mountain'},
+    {name:'嘉義',line:'mountain'},{name:'臺南',line:'mountain'},
+    {name:'高雄',line:'mountain'},{name:'大甲',line:'coast'},
+    {name:'清水',line:'coast'},{name:'沙鹿',line:'coast'},
+    {name:'通霄',line:'coast'},{name:'苑裡',line:'coast'}
+  ],
+  maxErrors:2
+};
+function lvSortbins2Html(){
+  var html='<div class="sec"><div class="sec-title">歸納關 B（山線/海線 → 站名）</div>'
+    +'<p class="dim" style="margin-bottom:10px;line-height:1.85;font-size:11px;">'
+    +'兩張線別紙條（dock 中固定）+ 滿地散布的站名。<br>'
+    +'拖線到正確站 → 站消失；錯誤累計，達到「最大錯誤數」就打散重排，錯誤歸零。'
+    +'</p>'
+    +'<div class="fld"><label>標題</label>'
+    +'<input type="text" id="sb2-title" placeholder="將山線、海線分發到各車站" oninput="dirty()"></div>'
+    +'<div class="fld"><label>規則說明（玩家點 ⓘ 看到）</label>'
+    +'<textarea id="sb2-help" rows="3" oninput="dirty()"></textarea></div>'
+    +'<div class="fld"><label>最大錯誤數（達到後整關重置：所有站名復原並重排）</label>'
+    +'<input type="number" id="sb2-maxerr" min="1" max="20" value="2" oninput="dirty()" style="width:80px"></div>'
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">線別紙條（lines）</div>'
+    +'<div id="sb2-lines-list"></div>'
+    +'<button class="btn btn-p btn-sm mt12" onclick="addSortbins2Line()">＋ 新增線別</button>'
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">站名（stations）</div>'
+    +'<p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:8px;">'
+    +'每個站名要對應到上面某個線別的 ID。臺中以北只能走山線到達的大城市（如臺北、新竹）也應標為山線。'
+    +'</p>'
+    +'<div id="sb2-stations-list"></div>'
+    +'<button class="btn btn-p btn-sm mt12" onclick="addSortbins2Station()">＋ 新增站名</button>'
+    +'</div>';
+  return html;
+}
+function fillSortbins2Lv(){
+  if(!G.sortbins2)G.sortbins2=JSON.parse(JSON.stringify(_DEFAULT_SORTBINS2_ADMIN));
+  setVal('sb2-title',G.sortbins2.title||'');
+  setVal('sb2-help',G.sortbins2.help||'');
+  setVal('sb2-maxerr',String(G.sortbins2.maxErrors||2));
+  renderSortbins2Lines();
+  renderSortbins2Stations();
+}
+function renderSortbins2Lines(){
+  if(!Array.isArray(G.sortbins2.lines))G.sortbins2.lines=[];
+  var h='';
+  G.sortbins2.lines.forEach(function(l,i){
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'
+      +'<span class="dim" style="min-width:48px;font-size:11px;">ID</span>'
+      +'<input type="text" value="'+esc(l.id)+'" style="width:120px" oninput="G.sortbins2.lines['+i+'].id=this.value;dirty()">'
+      +'<span class="dim" style="font-size:11px;">名稱</span>'
+      +'<input type="text" value="'+esc(l.label)+'" style="flex:1" oninput="G.sortbins2.lines['+i+'].label=this.value;dirty()">'
+      +'<button class="btn btn-d btn-sm" onclick="delSortbins2Line('+i+')">刪</button>'
+      +'</div>';
+  });
+  var el=document.getElementById('sb2-lines-list');
+  if(el)el.innerHTML=h||'<div class="dim" style="padding:10px;">（尚無線別）</div>';
+}
+function addSortbins2Line(){
+  if(!Array.isArray(G.sortbins2.lines))G.sortbins2.lines=[];
+  G.sortbins2.lines.push({id:'line'+(G.sortbins2.lines.length+1),label:'新線別'});
+  renderSortbins2Lines();renderSortbins2Stations();dirty();
+}
+function delSortbins2Line(i){
+  if(!confirm('刪除此線別？對應到此 ID 的站名要另行修改。'))return;
+  G.sortbins2.lines.splice(i,1);
+  renderSortbins2Lines();renderSortbins2Stations();dirty();
+}
+function renderSortbins2Stations(){
+  if(!Array.isArray(G.sortbins2.stations))G.sortbins2.stations=[];
+  var h='';
+  var lineOpts=G.sortbins2.lines.map(function(l){return '<option value="'+esc(l.id)+'">'+esc(l.label)+'</option>';}).join('');
+  G.sortbins2.stations.forEach(function(s,i){
+    var sel=lineOpts;
+    if(s.line)sel=lineOpts.replace('value="'+esc(s.line)+'"','value="'+esc(s.line)+'" selected');
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">'
+      +'<span class="dim" style="min-width:24px;font-size:11px;">'+(i+1)+'</span>'
+      +'<input type="text" value="'+esc(s.name||'')+'" placeholder="站名" style="flex:1" oninput="G.sortbins2.stations['+i+'].name=this.value;dirty()">'
+      +'<span class="dim" style="font-size:11px;">→</span>'
+      +'<select onchange="G.sortbins2.stations['+i+'].line=this.value;dirty()" style="width:120px;">'+sel+'</select>'
+      +'<button class="btn btn-d btn-sm" onclick="delSortbins2Station('+i+')">刪</button>'
+      +'</div>';
+  });
+  var el=document.getElementById('sb2-stations-list');
+  if(el)el.innerHTML=h||'<div class="dim" style="padding:10px;">（尚無站名）</div>';
+}
+function addSortbins2Station(){
+  if(!Array.isArray(G.sortbins2.stations))G.sortbins2.stations=[];
+  var firstLine=G.sortbins2.lines[0]?G.sortbins2.lines[0].id:'';
+  G.sortbins2.stations.push({name:'',line:firstLine});
+  renderSortbins2Stations();dirty();
+}
+function delSortbins2Station(i){
+  G.sortbins2.stations.splice(i,1);
+  renderSortbins2Stations();dirty();
+}
+
+/* ── 關卡：開模印花（紅磚牆＋花磚） ── */
+var _DEFAULT_BRICKMOLD_ADMIN={
+  title:'開模印花 — 山牆水果浮雕',
+  help:'臺中車站正面的山牆上，原本嵌著一塊融合多種水果的浮雕——\n香蕉、蓮霧、石榴、鳳梨之中，挑出三種代表臺灣的物產，\n每一種都要在同一塊磚上各壓一遍。\n\n從原料做起：\n　黏土區 — 鏟子挖土，水盤和水。\n　模具區 — 設計圖選紋路，雕刻刀刻木板。每雕完一個就拖到印花區壓上去。\n　印花區 — 黏土上桌後，依序把三個不同的模具壓進去（每個都要敲滿）。\n　全部壓完，刮板脫模 → 拖到牆上凹痕。\n錯兩次整局重來。\n\n小知識：1917 年立起的二代驛，辰野金吾式樣 — 紅磚牆＋洗石子白色水平飾帶＋黑瓦，從英國折衷樣式輾轉到臺灣。',
+  maxErrors:2,
+  digCount:3,
+  carveCount:3,
+  pressCount:3,
+  comboCount:3,
+  targetComboIds:['banana','pomegranate','pineapple'],
+  patterns:[
+    {id:'banana',label:'香蕉',svg:"<svg viewBox='-50 -50 100 100' xmlns='http://www.w3.org/2000/svg'><path d='M-26,-22 Q-40,8 -8,30 Q24,38 32,8 Q26,18 8,22 Q-16,18 -22,4 Q-28,-12 -22,-26 Z' fill='currentColor'/><path d='M-22,-26 L-25,-36' stroke='currentColor' stroke-width='4' stroke-linecap='round' fill='none'/><path d='M-18,-15 Q-22,5 -8,22' stroke='currentColor' stroke-width='1.5' stroke-opacity='0.55' fill='none'/></svg>"},
+    {id:'waxapple',label:'蓮霧',svg:"<svg viewBox='-50 -50 100 100' xmlns='http://www.w3.org/2000/svg'><path d='M-7,-30 L-11,-22 Q-28,-14 -25,12 Q-22,32 0,32 Q22,32 25,12 Q28,-14 11,-22 L7,-30 L-7,-30 Z' fill='currentColor'/><path d='M0,-30 L0,-40' stroke='currentColor' stroke-width='3' stroke-linecap='round' fill='none'/><ellipse cx='-7' cy='-36' rx='7' ry='3.5' transform='rotate(-30 -7 -36)' fill='currentColor'/><ellipse cx='-12' cy='8' rx='4' ry='10' fill='currentColor' fill-opacity='0.4'/></svg>"},
+    {id:'pomegranate',label:'石榴',svg:"<svg viewBox='-50 -50 100 100' xmlns='http://www.w3.org/2000/svg'><circle cx='0' cy='6' r='28' fill='currentColor'/><path d='M-12,-20 L-13,-32 L-7,-26 L-3,-36 L0,-25 L3,-36 L7,-26 L13,-32 L12,-20 Z' fill='currentColor'/><path d='M0,-15 Q-2,15 0,28' stroke='currentColor' stroke-width='1.5' stroke-opacity='0.5' fill='none'/><g fill='currentColor' fill-opacity='0.55'><circle cx='-10' cy='2' r='2.5'/><circle cx='8' cy='-2' r='2.5'/><circle cx='-6' cy='14' r='2.5'/><circle cx='10' cy='12' r='2.5'/><circle cx='-12' cy='18' r='2'/><circle cx='4' cy='20' r='2'/></g></svg>"},
+    {id:'pineapple',label:'鳳梨',svg:"<svg viewBox='-50 -50 100 100' xmlns='http://www.w3.org/2000/svg'><g fill='currentColor'><path d='M-20,-22 L-16,-44 L-12,-22 Z'/><path d='M-10,-22 L-5,-46 L0,-22 Z'/><path d='M2,-22 L7,-44 L13,-22 Z'/><path d='M14,-22 L18,-40 L21,-22 Z'/><path d='M-22,-22 L-19,-38 L-16,-22 Z'/></g><ellipse cx='0' cy='6' rx='25' ry='28' fill='currentColor'/><g fill='none' stroke='currentColor' stroke-width='1.5' stroke-opacity='0.45'><line x1='-22' y1='-6' x2='22' y2='18'/><line x1='-22' y1='6' x2='22' y2='30'/><line x1='-22' y1='18' x2='22' y2='-6'/><line x1='-22' y1='30' x2='22' y2='6'/></g></svg>"}
+  ]
+};
+function lvBrickmoldHtml(){
+  var html='<div class="sec"><div class="sec-title">開模印花（紅磚花磚關）</div>'
+    +'<p class="dim" style="margin-bottom:10px;line-height:1.85;font-size:11px;">'
+    +'紅磚牆中央顯示目標花紋的凹痕。玩家依序「取黏土 → 選印模 → 木錘敲打 → 脫模 → 拖入凹痕」。<br>'
+    +'下方「目標花紋」決定哪一個印模才是正確的；其他印模即便完成製程也對不上凹痕。'
+    +'</p>'
+    +'<div class="fld"><label>標題</label>'
+    +'<input type="text" id="bm-title" placeholder="開模印花：印出與牆上凹痕相符的花磚" oninput="dirty()"></div>'
+    +'<div class="fld"><label>規則說明（玩家點 ⓘ 看到）</label>'
+    +'<textarea id="bm-help" rows="3" oninput="dirty()"></textarea></div>'
+    +'<div class="bar">'
+    +'<div class="fld" style="margin-bottom:0;"><label>挖土次數</label>'
+    +'<input type="number" id="bm-dig" min="1" max="20" value="3" oninput="dirty()" style="width:70px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>雕刻次數</label>'
+    +'<input type="number" id="bm-carve" min="1" max="20" value="3" oninput="dirty()" style="width:70px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>每模敲打次數</label>'
+    +'<input type="number" id="bm-press" min="1" max="20" value="3" oninput="dirty()" style="width:70px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>融合紋路數</label>'
+    +'<input type="number" id="bm-combocount" min="1" max="6" value="3" oninput="dirty()" style="width:70px"></div>'
+    +'<div class="fld" style="margin-bottom:0;"><label>最大錯誤數</label>'
+    +'<input type="number" id="bm-maxerr" min="1" max="20" value="2" oninput="dirty()" style="width:70px"></div>'
+    +'</div>'
+    +'<div class="fld"><label>目標融合紋路（勾選 N 種，N＝融合紋路數）</label>'
+    +'<div id="bm-combo-list" style="display:flex;gap:14px;flex-wrap:wrap;padding:6px 0;"></div>'
+    +'</div>'
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">印模花紋（patterns）</div>'
+    +'<p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:8px;">'
+    +'每個印模有 ID（程式內用）、名稱（顯示給玩家）、SVG（圖案，用 <code>currentColor</code> 著色）。<br>'
+    +'目標花紋必須是這裡的某個 ID；其他印模玩家也會看到，但拖入凹痕時會被拒絕。'
+    +'</p>'
+    +'<div id="bm-patterns-list"></div>'
+    +'<button class="btn btn-p btn-sm mt12" onclick="addBrickmoldPattern()">＋ 新增印模</button>'
+    +'</div>';
+  return html;
+}
+function fillBrickmoldLv(){
+  if(!G.brickmold||!Array.isArray(G.brickmold.patterns)||!G.brickmold.patterns.length){
+    G.brickmold=JSON.parse(JSON.stringify(_DEFAULT_BRICKMOLD_ADMIN));
+  }
+  /* 舊資料相容：把 targetPatternId 升級成 targetComboIds */
+  if(!Array.isArray(G.brickmold.targetComboIds)){
+    G.brickmold.targetComboIds=G.brickmold.targetPatternId?[G.brickmold.targetPatternId]:[];
+  }
+  if(!G.brickmold.comboCount)G.brickmold.comboCount=Math.max(1,G.brickmold.targetComboIds.length||3);
+  setVal('bm-title',G.brickmold.title||'');
+  setVal('bm-help',G.brickmold.help||'');
+  setVal('bm-dig',String(G.brickmold.digCount||3));
+  setVal('bm-carve',String(G.brickmold.carveCount||3));
+  setVal('bm-press',String(G.brickmold.pressCount||3));
+  setVal('bm-combocount',String(G.brickmold.comboCount||3));
+  setVal('bm-maxerr',String(G.brickmold.maxErrors||2));
+  renderBrickmoldComboList();
+  renderBrickmoldPatterns();
+}
+function renderBrickmoldComboList(){
+  var box=document.getElementById('bm-combo-list');if(!box)return;
+  if(!Array.isArray(G.brickmold.targetComboIds))G.brickmold.targetComboIds=[];
+  var cur=G.brickmold.targetComboIds;
+  var h='';
+  G.brickmold.patterns.forEach(function(p){
+    var checked=cur.indexOf(p.id)>=0?' checked':'';
+    h+='<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;">'
+      +'<input type="checkbox" data-pid="'+esc(p.id)+'"'+checked+' onchange="toggleBrickmoldCombo(this)">'
+      +esc(p.label||p.id)+'</label>';
+  });
+  box.innerHTML=h;
+}
+function toggleBrickmoldCombo(input){
+  if(!Array.isArray(G.brickmold.targetComboIds))G.brickmold.targetComboIds=[];
+  var pid=input.dataset.pid;
+  var idx=G.brickmold.targetComboIds.indexOf(pid);
+  if(input.checked&&idx<0)G.brickmold.targetComboIds.push(pid);
+  else if(!input.checked&&idx>=0)G.brickmold.targetComboIds.splice(idx,1);
+  dirty();
+}
+function renderBrickmoldPatterns(){
+  if(!Array.isArray(G.brickmold.patterns))G.brickmold.patterns=[];
+  var h='';
+  G.brickmold.patterns.forEach(function(p,i){
+    h+='<div style="border:1px dashed rgba(194,80,40,.3);border-radius:3px;padding:10px;margin-bottom:10px;">'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'
+      +'<span class="dim" style="min-width:30px;font-size:11px;">'+(i+1)+'</span>'
+      +'<span class="dim" style="font-size:11px;">ID</span>'
+      +'<input type="text" value="'+esc(p.id||'')+'" style="width:110px" oninput="G.brickmold.patterns['+i+'].id=this.value;dirty();renderBrickmoldComboList();">'
+      +'<span class="dim" style="font-size:11px;">名稱</span>'
+      +'<input type="text" value="'+esc(p.label||'')+'" style="flex:1" oninput="G.brickmold.patterns['+i+'].label=this.value;dirty();renderBrickmoldComboList();">'
+      +'<button class="btn btn-d btn-sm" onclick="delBrickmoldPattern('+i+')">刪</button>'
+      +'</div>'
+      +'<div style="display:flex;gap:10px;align-items:flex-start;">'
+      +'<textarea oninput="G.brickmold.patterns['+i+'].svg=this.value;dirty();_bmPreviewSvg('+i+');" '
+      +'rows="4" style="flex:1;font-family:monospace;font-size:10px;line-height:1.4;" placeholder="<svg viewBox=...>...</svg>">'+esc(p.svg||'')+'</textarea>'
+      +'<div id="bm-pat-prev-'+i+'" style="width:80px;height:80px;background:#1a1208;border:1px solid var(--gold-dim);border-radius:3px;display:flex;align-items:center;justify-content:center;color:#c25028;flex-shrink:0;">'
+      +(p.svg||'<span class="dim" style="font-size:10px;">（預覽）</span>')
+      +'</div>'
+      +'</div>'
+      +'</div>';
+  });
+  var listEl=document.getElementById('bm-patterns-list');
+  if(listEl)listEl.innerHTML=h||'<div class="dim" style="padding:10px;">（尚無印模）</div>';
+}
+function _bmPreviewSvg(i){
+  var prev=document.getElementById('bm-pat-prev-'+i);
+  if(prev)prev.innerHTML=G.brickmold.patterns[i].svg||'<span class="dim" style="font-size:10px;">（預覽）</span>';
+}
+function addBrickmoldPattern(){
+  if(!Array.isArray(G.brickmold.patterns))G.brickmold.patterns=[];
+  G.brickmold.patterns.push({id:'pat'+(G.brickmold.patterns.length+1),label:'新花紋',svg:"<svg viewBox='-50 -50 100 100' xmlns='http://www.w3.org/2000/svg'><circle cx='0' cy='0' r='30' fill='none' stroke='currentColor' stroke-width='3'/></svg>"});
+  renderBrickmoldPatterns();renderBrickmoldComboList();dirty();
+}
+function delBrickmoldPattern(i){
+  if(!confirm('刪除此印模？若是目標花紋會自動改為第一個。'))return;
+  G.brickmold.patterns.splice(i,1);
+  if(!G.brickmold.patterns.some(function(p){return p.id===G.brickmold.targetPatternId;})){
+    G.brickmold.targetPatternId=G.brickmold.patterns[0]?G.brickmold.patterns[0].id:'';
+  }
+  renderBrickmoldPatterns();renderBrickmoldComboList();dirty();
+}
+function collectBrickmold(){
+  if(!document.getElementById('bm-title')||!G.brickmold)return;
+  G.brickmold.title=gv('bm-title','');
+  G.brickmold.help=gv('bm-help','');
+  var dc=parseInt(gv('bm-dig',''),10);
+  if(!isNaN(dc)&&dc>0)G.brickmold.digCount=dc;
+  var cc=parseInt(gv('bm-carve',''),10);
+  if(!isNaN(cc)&&cc>0)G.brickmold.carveCount=cc;
+  var pc=parseInt(gv('bm-press',''),10);
+  if(!isNaN(pc)&&pc>0)G.brickmold.pressCount=pc;
+  var nc=parseInt(gv('bm-combocount',''),10);
+  if(!isNaN(nc)&&nc>0)G.brickmold.comboCount=nc;
+  var me=parseInt(gv('bm-maxerr',''),10);
+  if(!isNaN(me)&&me>0)G.brickmold.maxErrors=me;
+}
+
+function lvPhylockHtml(){
+  var html='<div class="sec"><div class="sec-title">電磁鎖（ESP32 連動）</div>'
+    +'<p class="dim" style="margin-bottom:10px;line-height:1.85;font-size:11px;">'
+    +'<b>運作原理：</b>遊戲畫面跳出密碼輸入框，玩家輸入密碼 → 遊戲先本地比對（線上鎖）→ 同時 POST 給 ESP32（實體鎖）→ 兩鎖同時開。<br>'
+    +'<b>連線方式：</b>ESP32 預設建立 WiFi 熱點 <code>tcts-lock</code>（密碼 <code>tcts1908</code>），平板需先連到這個熱點。<br>'
+    +'<b>韌體位置：</b>專案內 <code>firmware/tcts-lock.ino</code>（用 Arduino IDE 開啟、上傳）。<br>'
+    +'<b>注意：</b>實體 / 韌體的 <code>UNLOCK_PASSWORD</code> 必須與下面「解鎖密碼」一致。'
+    +'</p>'
+    +'<div class="fld"><label>解鎖密碼（同時用於遊戲本地比對與 ESP32）</label>'
+    +'<input type="text" id="pl-password" placeholder="1908" oninput="dirty()" '
+      +'style="font-size:16px;letter-spacing:.2em;color:var(--gold);"></div>'
+    +'<div class="fld"><label>ESP32 端點 URL（預設 AP 模式為 <code>http://192.168.4.1</code>）</label>'
+    +'<input type="text" id="pl-endpoint" placeholder="http://192.168.4.1" oninput="dirty()"></div>'
+    +'<div class="fld"><label style="display:flex;align-items:center;gap:8px;">'
+      +'<input type="checkbox" id="pl-use-hw" onchange="dirty()" style="width:auto;">'
+      +'啟用實體電磁鎖（取消勾選 = 純線上模式，跳過實體連線）'
+    +'</label></div>'
+    +'</div>'
+    +'<div class="sec"><div class="sec-title">畫面文字</div>'
+    +fld('提示文字（密碼框上方）','pl-hint','請輸入解鎖密碼','textarea')
+    +fld('成功訊息','pl-ok','電磁鎖已開啟')
+    +fld('密碼錯誤訊息','pl-wrong','密碼錯誤')
+    +fld('離線警告（連不到 ESP32 時顯示，仍會繼續劇情）','pl-offline','無法連線到電子鎖（離線模式繼續劇情）')
+    +'</div>';
+  return html;
+}
+function fillPhylockLv(){
+  var lk=G.lock||{};
+  setVal('pl-password',lk.password||'');
+  setVal('pl-endpoint',lk.endpoint||'http://192.168.4.1');
+  var cb=document.getElementById('pl-use-hw');if(cb)cb.checked=lk.useHardware!==false;
+  setVal('pl-hint',lk.hint||'請輸入解鎖密碼');
+  setVal('pl-ok',lk.okText||'電磁鎖已開啟');
+  setVal('pl-wrong',lk.wrongText||'密碼錯誤');
+  setVal('pl-offline',lk.offlineText||'無法連線到電子鎖（離線模式繼續劇情）');
+}
+function collectPhylock(){
+  if(!document.getElementById('pl-password'))return;
+  var cb=document.getElementById('pl-use-hw');
+  G.lock={
+    password:gv('pl-password','').trim(),
+    endpoint:gv('pl-endpoint','http://192.168.4.1').trim(),
+    useHardware:cb?cb.checked:true,
+    hint:gv('pl-hint','請輸入解鎖密碼'),
+    okText:gv('pl-ok','電磁鎖已開啟'),
+    wrongText:gv('pl-wrong','密碼錯誤'),
+    offlineText:gv('pl-offline','無法連線到電子鎖（離線模式繼續劇情）')
+  };
+}
+function loadPuzzlePieceThumb(n){
+  loadAsset('puzzle-'+n,function(blob){
+    var el=document.getElementById('pz-up-thumb-'+n);
+    if(!el)return;
+    if(blob){
+      el.innerHTML='<img src="'+URL.createObjectURL(blob)+'" alt=""><span class="pz-up-num">#'+n+'</span>';
+    }else{
+      el.innerHTML='<span class="pz-up-num">#'+n+'</span><span style="position:relative;z-index:1;">'+n+'</span>';
+    }
+  });
+}
+function uploadPuzzlePiece(n,input){
+  var f=input.files[0];if(!f)return;
+  saveAsset('puzzle-'+n,f,function(ok){
+    input.value='';
+    if(ok){
+      loadPuzzlePieceThumb(n);
+      bc('asset-update',{key:'puzzle-'+n,assetType:'image'});
+      note('拼圖 #'+n+' 已儲存　'+new Date().toLocaleTimeString('zh-TW'));
+    }else alert('儲存失敗');
+  });
+}
+function delPuzzlePiece(n){
+  if(!confirm('清除拼圖第 '+n+' 塊？'))return;
+  delAsset('puzzle-'+n,function(){
+    loadPuzzlePieceThumb(n);
+    bc('asset-update',{key:'puzzle-'+n,assetType:'image'});
+  });
+}
+function baguaImgCellHtml(key,label){
+  return '<div class="bagua-up-cell" data-label="'+esc(label||key)+'">'
+    +'<div class="bagua-up-thumb" id="ba-up-thumb-'+esc(key)+'">'+esc(label||key)+'</div>'
+    +'<input type="file" id="ba-up-file-'+esc(key)+'" accept="image/*" style="display:none" '
+      +'onchange="uploadBaguaImg(\''+esc(key)+'\',this)">'
+    +'<div class="bagua-up-actions">'
+      +'<label class="btn btn-p btn-sm" for="ba-up-file-'+esc(key)+'" style="cursor:pointer;">上傳</label>'
+      +'<button class="btn btn-d btn-sm" onclick="delBaguaImg(\''+esc(key)+'\')">×</button>'
+    +'</div></div>';
+}
+function loadBaguaImgThumb(key){
+  loadAsset(key,function(blob){
+    var el=document.getElementById('ba-up-thumb-'+key);
+    if(!el)return;
+    var cell=el.closest('.bagua-up-cell');
+    var label=cell?cell.dataset.label:key;
+    if(blob){
+      el.innerHTML='<img src="'+URL.createObjectURL(blob)+'" alt=""><span class="ba-up-corner">'+esc(label)+'</span>';
+    }else{
+      el.innerHTML=esc(label);
+    }
+  });
+}
+function uploadBaguaImg(key,input){
+  var f=input.files[0];if(!f)return;
+  saveAsset(key,f,function(ok){
+    input.value='';
+    if(ok){
+      loadBaguaImgThumb(key);
+      bc('asset-update',{key:key,assetType:'image'});
+      note('圖片「'+key+'」已儲存　'+new Date().toLocaleTimeString('zh-TW'));
+    }else alert('儲存失敗');
+  });
+}
+function delBaguaImg(key){
+  if(!confirm('清除圖片「'+key+'」？'))return;
+  delAsset(key,function(){
+    loadBaguaImgThumb(key);
+    bc('asset-update',{key:key,assetType:'image'});
+  });
+}
+
+function lvBaguaHtml(){
+  var h='';
+  /* (A) 壁龕場景 */
+  h+='<div class="sec"><div class="sec-title">壁龕場景（密碼解開後直接顯示）</div>'
+    +'<p class="dim" style="margin-bottom:10px;font-size:11px;line-height:1.8;">'
+    +'密碼解開後立即顯示這張全螢幕圖；停留指定秒數後自動進入八卦封印關。'
+    +'</p>'
+    +fld('壁龕停留秒數（按鈕「我已到達，繼續」於此秒數後出現，預設 10）','stg-niche-dur','10','number')
+    +'<div class="bagua-up-cell" style="max-width:240px;margin-top:10px;" data-label="壁龕全螢幕圖">'
+      +'<div class="bagua-up-thumb" id="ba-up-thumb-niche-bg">壁龕全螢幕圖</div>'
+      +'<input type="file" id="ba-up-file-niche-bg" accept="image/*" style="display:none" onchange="uploadBaguaImg(\'niche-bg\',this)">'
+      +'<div class="bagua-up-actions">'
+        +'<label class="btn btn-p btn-sm" for="ba-up-file-niche-bg" style="cursor:pointer;">上傳</label>'
+        +'<button class="btn btn-d btn-sm" onclick="delBaguaImg(\'niche-bg\')">×</button>'
+      +'</div></div>'
+    +'</div>';
+  /* (B) 提示圖 */
+  h+='<div class="sec"><div class="sec-title">提示圖（八卦關 15 秒後右上燈泡點開可看，免費）</div>'
+    +'<p class="dim" style="margin-bottom:10px;font-size:11px;line-height:1.8;">'
+    +'玩家進入八卦關後 15 秒，右上角自動出現燈泡；點燈泡會顯示這張提示圖（不需付費，到時自然顯現）。'
+    +'</p>'
+    +'<div class="bagua-up-cell" style="max-width:240px;" data-label="提示圖">'
+      +'<div class="bagua-up-thumb" id="ba-up-thumb-bagua-hint">提示圖</div>'
+      +'<input type="file" id="ba-up-file-bagua-hint" accept="image/*" style="display:none" onchange="uploadBaguaImg(\'bagua-hint\',this)">'
+      +'<div class="bagua-up-actions">'
+        +'<label class="btn btn-p btn-sm" for="ba-up-file-bagua-hint" style="cursor:pointer;">上傳</label>'
+        +'<button class="btn btn-d btn-sm" onclick="delBaguaImg(\'bagua-hint\')">×</button>'
+      +'</div></div>'
+    +'</div>';
+  /* (C) 八個卦圖 */
+  h+='<div class="sec"><div class="sec-title">八個卦圖（可選；上傳後取代預設爻線）</div>'
+    +'<p class="dim" style="margin-bottom:10px;font-size:11px;line-height:1.8;">'
+    +'不上傳會顯示預設的金色長橫／短橫線（陽爻／陰爻）。<br>'
+    +'位置標示：<b>NW</b>=西北 / <b>W</b>=西 / <b>SW</b>=西南 / <b>N</b>=北 / <b>S</b>=南 / <b>NE</b>=東北 / <b>E</b>=東 / <b>SE</b>=東南'
+    +'</p>'
+    +'<div class="bagua-up-grid-8">';
+  var TG=[
+    {k:'qian', n:'乾 ☰ 天 (NW)'},
+    {k:'kan',  n:'坎 ☵ 水 (N)'},
+    {k:'gen',  n:'艮 ☶ 山 (NE)'},
+    {k:'dui',  n:'兌 ☱ 澤 (W)'},
+    {k:'zhen', n:'震 ☳ 雷 (E)'},
+    {k:'kun',  n:'坤 ☷ 地 (SW)'},
+    {k:'li',   n:'離 ☲ 火 (S)'},
+    {k:'xun',  n:'巽 ☴ 風 (SE)'}
+  ];
+  TG.forEach(function(tg){h+=baguaImgCellHtml('bagua-tg-'+tg.k,tg.n);});
+  h+='</div></div>';
+  /* (D) 八段咒文（保留原本） */
+  h+='<div class="sec"><div class="sec-title">八段咒文（左下卷軸點開後閃現）</div>'
+    +'<p class="dim" style="margin-bottom:10px;line-height:1.8;font-size:11px;">'
+    +'每段文字中應自然藏有兩個卦式名稱（澤／山／水／天／火／風／雷／地），<b>不加粗、不標示</b>。<br>'
+    +'第 1–3 層：八段全部顯現，每篇有自己的節奏（顯示 5–8 秒、隱藏 1.5–3.5 秒）。<br>'
+    +'第 4–8 層：每篇獨立隨機閃現（顯示 2–4 秒、隱藏 4–8 秒），可能多篇同時亮、也可能全暗。<br>'
+    +'答錯任何一卦會整關歸零並回到第一階段。'
+    +'</p>';
+  BAGUA_LV_LAYERS.forEach(function(lv,i){
+    h+='<div class="fld"><label>第 '+lv.idx+' 層　'+esc(lv.zh)+'　<span class="dim">'+esc(lv.sub)+'　／撕開順序：'+esc(lv.order)+'</span></label>'
+      +'<textarea id="bagua-inc-'+i+'" rows="4" oninput="dirty()" placeholder="（留空使用預設咒文）"></textarea></div>';
+  });
+  h+='</div>';
+  /* (E) 規則說明（玩家點右上 ⓘ 看到的內容；textarea 直接預載預設文字方便編輯） */
+  h+='<div class="sec"><div class="sec-title">規則說明文字（玩家點右上角 ⓘ 看到）</div>'
+    +'<p class="dim" style="margin-bottom:10px;font-size:11px;line-height:1.8;">'
+    +'下方 textarea 預先帶入「預設規則」文字，可直接編輯後存檔；清空欄位也會自動回到預設。'
+    +'</p>'
+    +'<div class="fld"><textarea id="bagua-rules" rows="10" oninput="dirty()"></textarea></div>'
+    +'</div>';
+  return h;
+}
+/* 八卦關預設規則（與 index.html 同步；後台 textarea 直接預載這段，方便編輯） */
+var BAGUA_DEFAULT_RULES_ADMIN=
+  '・畫面中央是後天八卦輪盤，外圈有八個卦各自獨立。\n'
+  +'・左下角 📜 卷軸：點開看八段咒文，會隨機閃現，請仰賴記憶。\n'
+  +'・右上角 💡 燈泡：經過 15 秒後出現，可看一張提示圖。\n'
+  +'・每一層需依正確順序撕開兩個卦——撕開順序藏在咒文中。\n'
+  +'・只要撕錯一個卦就會「反噬」：紅光、整關歸零、咒文回到第一階段。\n'
+  +'・八層全部正確撕開 → 顯示「封印已解」、繼續劇情。\n'
+  +'・建議邊聽（看）咒文邊推卦象，有把握再下手。';
+/* 八段咒文預設（與 index.html BAGUA_DEFAULT_INC 同步；後台 textarea 直接預載這些文字） */
+var BAGUA_DEFAULT_INC_ADMIN=[
+  '澤畔有山，山色無言。\n感之以誠，應之以顫。\n目所未觸，心已先亂。\n此為咸始，動而未言。',
+  '山下有水，行而不知所往。\n蒙者非暗，是光未至之際。\n問之不答，答之又問。\n兩岸皆霧，渡口無人掌燈。',
+  '澤氣升騰，直衝九天。\n夬者，決也，五陽逼一陰於頂。\n此言一出，無可追回。\n天若有答，便是晴；天若無聲，亦已應。',
+  '澤中生火，水火不容卻仍相擁。\n革者，舊皮脫盡，新色方顯。\n從此山河改色，日月換位。\n燒至澤底，燙仍不知。',
+  '風入火中，火憑風勢，風藉火明。\n家者，各有其位，各守其則。\n灶有火餘溫，窗有穿堂風。\n親近者，最易為細故所傷。',
+  '火，性上而炎，澤性潤下，背道而馳。\n睽者，同根而異向，相識而相違。\n昨日之澤，今日之火。\n燒的是同一片。',
+  '水覆於水，險摞於險。\n兩淵相對，緘口不言。\n沉默卻非無話可說。\n水外仍是水，無岸可渡。',
+  '風起於水上，萬紋皆起。\n渙者非滅，為形將盡而質猶存。\n一切離散之物，終將凝聚。\n此後，水不盡，風不散。'
+];
+function fillBaguaLv(){
+  var inc=(G.bagua&&Array.isArray(G.bagua.incantations))?G.bagua.incantations:[];
+  /* 預設文字直接帶進 textarea；玩家清空也存空字串（遊戲端 fallback 預設） */
+  for(var i=0;i<8;i++){
+    setVal('bagua-inc-'+i, inc[i]||BAGUA_DEFAULT_INC_ADMIN[i]||'');
+    var ta=document.getElementById('bagua-inc-'+i);if(ta)ta.removeAttribute('placeholder');
+  }
+  var nicheDur=(G.stages&&G.stages.niche&&G.stages.niche.duration)||10;
+  setVal('stg-niche-dur',nicheDur);
+  /* 規則文字：若 G.bagua.rules 已有自訂值就用它；否則預載預設文字（不留空） */
+  var rules=(G.bagua&&G.bagua.rules&&G.bagua.rules.length)?G.bagua.rules:BAGUA_DEFAULT_RULES_ADMIN;
+  setVal('bagua-rules',rules);
+  /* 載入 10 張圖片縮圖 */
+  ['niche-bg','bagua-hint','bagua-tg-qian','bagua-tg-dui','bagua-tg-li','bagua-tg-zhen',
+   'bagua-tg-xun','bagua-tg-kan','bagua-tg-gen','bagua-tg-kun'].forEach(loadBaguaImgThumb);
+}
+function collectBagua(){
+  /* 壁龕停留秒數寫入 G.stages.niche.duration */
+  if(document.getElementById('stg-niche-dur')){
+    if(!G.stages)G.stages={};
+    if(!G.stages.niche)G.stages.niche={};
+    G.stages.niche.duration=Math.max(1,parseInt(gv('stg-niche-dur','10'))||10);
+  }
+  if(!document.getElementById('bagua-inc-0'))return;
+  if(!G.bagua)G.bagua={};
+  var arr=[];
+  for(var i=0;i<8;i++){arr.push(gv('bagua-inc-'+i,''));}
+  G.bagua.incantations=arr;
+  /* 規則：清空 = 用預設（後台 fillBaguaLv 下次又會回填預設文字） */
+  var r=gv('bagua-rules','').trim();
+  if(r&&r!==BAGUA_DEFAULT_RULES_ADMIN)G.bagua.rules=r;
+  else delete G.bagua.rules;
+}
+
+/* helper：表單欄位 */
+function fld(label,id,placeholder,type){
+  type=type||'text';
+  var input;
+  if(type==='textarea')input='<textarea id="'+id+'" rows="3" oninput="dirty()" placeholder="'+esc(placeholder||'')+'"></textarea>';
+  else input='<input type="'+type+'" id="'+id+'" oninput="dirty()" placeholder="'+esc(placeholder||'')+'">';
+  return '<div class="fld"><label>'+esc(label)+'</label>'+input+'</div>';
+}
+function setVal(id,v){var el=document.getElementById(id);if(el)el.value=v==null?'':v;}
+
+/* 收集所有編輯中的欄位（saveAll 呼叫） */
+function collectStages(){
+  if(!G.stages)G.stages={};
+  var pr={prompt:gv('stg-pr-prompt','電話響起……'),btn:gv('stg-pr-btn','接起電話')};
+  if(document.getElementById('stg-pr-prompt'))G.stages.phoneRing=pr;
+  var sb={title:gv('stg-sb-title','手動交換臺'),
+          cordPrefix:gv('stg-sb-cord','跳線 '),
+          fromLabel:gv('stg-sb-from','發話'),toLabel:gv('stg-sb-to','受話'),
+          nextBtn:gv('stg-sb-next','下一通'),doneBtn:gv('stg-sb-done','結束作業'),
+          dialogDelay:parseInt(gv('stg-sb-dly','2400'))||2400};
+  if(document.getElementById('stg-sb-title'))G.stages.switchboard=sb;
+  var hg={bulbDelay:parseInt(gv('stg-hg-delay','10'))||10};
+  if(document.getElementById('stg-hg-delay'))G.stages.hintGate=hg;
+}
+function collectStage2(){
+  if(document.getElementById('map-prompt')){
+    if(!G.map)G.map={};
+    G.map.promptText=gv('map-prompt','');
+    G.map.buttonText=gv('map-btn-text','繼續前往');
+  }
+  if(document.getElementById('hs-text')){
+    G.hintShop={hintText:gv('hs-text',''),payBtnText:gv('hs-btn','以照片購買')};
+  }
+  if(document.getElementById('s2-thr')){
+    G.stage2={threshold:parseInt(gv('s2-thr','70'))||70,
+      hintPrefix:gv('s2-prefix','您購得的線索'),
+      hintAnswer:gv('s2-answer','')};
+  }
+}
+function gv(id,d){var el=document.getElementById(id);return el?el.value:(d||'');}
+
+/* ══ I/O ══ */
+function exportJSON(){
+  collectAppear();collectStage2();collectStages();
+  var b=new Blob([JSON.stringify(G,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='tcgame-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+}
+function importJSON(input){
+  var f=input.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(e){
+    try{
+      G=JSON.parse(e.target.result);
+      /* 補齊舊格式缺少的欄位 */
+      if(!G.customAudio)G.customAudio=[];
+      if(!G.customImages)G.customImages=[];
+      if(!G.spriteLayout)G.spriteLayout={};
+      if(!G.map)G.map={promptText:'',buttonText:'繼續前往'};
+      if(!G.hintShop)G.hintShop=JSON.parse(JSON.stringify(DEFAULT_DATA.hintShop));
+      if(!G.stage2)G.stage2={successText:'',threshold:70};
+      if(!G.appear)G.appear=JSON.parse(JSON.stringify(DEFAULT_DATA.appear));
+      if(!Array.isArray(G.jacks)||!G.jacks.length)G.jacks=JSON.parse(JSON.stringify(DEFAULT_DATA.jacks));
+      if(!Array.isArray(G.calls)||!G.calls.length)G.calls=JSON.parse(JSON.stringify(DEFAULT_DATA.calls));
+      renderAll();dirty();alert('匯入成功！請點「儲存並同步」。');
+    }
+    catch(err){alert('匯入失敗：'+err.message);}
+  };
+  r.readAsText(f);input.value='';
+}
+function resetAll(){
+  if(!confirm('確定要還原所有資料嗎？\n劇情設定將清除，圖片音訊不受影響。\n此操作無法復原。'))return;
+  G=JSON.parse(JSON.stringify(DEFAULT_DATA));localStorage.removeItem(LS_KEY);
+  /* 連同提示商城的購買紀錄一起清掉 */
+  try{localStorage.removeItem('tcgame_hintPurchased');}catch(e){}
+  renderAll();setSynced(true);if(_bc)_bc.postMessage({type:'reload'});alert('已還原為預設值。');
+}
+
+/* 單獨解鎖提示商城（不動其他資料，方便測試） */
+function resetHintPurchase(){
+  if(!confirm('解鎖提示商城（讓玩家可以重新購買一次）？'))return;
+  try{localStorage.removeItem('tcgame_hintPurchased');}catch(e){}
+  if(_bc)_bc.postMessage({type:'reload'});
+  alert('已解鎖。請玩家重新整理遊戲頁。');
+}
+
+/* ══ Render All ══ */
+function renderAll(){
+  renderEvents();
+  renderMedia();
+  renderAppear();
+  renderLevels();
+}
+
+/* ══ Init ══ */
+/* 先載 G（取得 customAudio／customImages），再 bootstrap，最後重渲染媒體分頁拿縮圖 */
+loadStorage();
+bootstrapAssets(function(){
+  /* 若使用者目前停在「圖片／音訊」分頁，重新刷一下縮圖／播放器 */
+  if(document.getElementById('panel-media')&&document.getElementById('panel-media').classList.contains('on')){
+    renderMedia();
+  }
+});
+window.addEventListener('beforeunload',function(e){
+  if(document.getElementById('sync-dot').classList.contains('dirty')){e.preventDefault();e.returnValue='';}
+});
+</script>
+</body>
+</html>

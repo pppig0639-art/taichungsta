@@ -1,0 +1,63 @@
+{
+  "_comment": "後台管理設定檔 — 修改此檔案即可更換圖片、文字，無需動 HTML",
+
+  "scenes": {
+    "phoneboothExterior": {
+      "cssSelector": "#phonebooth-exterior",
+      "property": "background-image",
+      "path": "assets/images/phonebooth-exterior.jpg",
+      "description": "電話亭外觀場景背景圖"
+    },
+    "phoneInterior": {
+      "cssSelector": "#phone-interior",
+      "property": "background-image",
+      "path": "assets/images/phone-interior.jpg",
+      "description": "電話內部場景背景圖"
+    },
+    "exchangeScene": {
+      "selector": "#exchange-scene img",
+      "property": "src",
+      "path": "assets/images/exchange-scene.jpg",
+      "description": "電話交換局場景圖"
+    }
+  },
+
+  "sprites": {
+    "yuyan": {
+      "elementIds": ["sp-yuyan", "sp-yuyan-1908"],
+      "path": "assets/images/sp-yuyan.png",
+      "description": "語嫣角色精靈圖（兩個場景共用同一張）"
+    }
+  },
+
+  "ui": {
+    "startDeco":       "— 臺中驛 時空電話 —",
+    "startTitleJp":    "舊臺中驛　時空電話",
+    "startTitleZh":    "穿越時空的電話",
+    "startBtn":        "開始遊戲",
+    "stage1Header":    "關卡一　通信事務員的考驗",
+    "stage2Header":    "關卡二　臺中驛",
+    "startTitleJpSize": 26,
+    "startTitleZhSize": 12,
+    "startDecoSize":    10
+  },
+
+  "stage2": {
+    "hint":        "請在臺中驛正門口，對準地面俯拍一張照片。",
+    "successText": "位置確認！歡迎來到臺中驛。",
+    "threshold":   70,
+    "refImage":    "assets/images/stage-ref.jpg",
+    "description": "關卡二拍照比對設定：threshold 為相似度門檻（0-100）"
+  },
+
+  "appearance": {
+    "dialogFontSize":   20,
+    "speakerFontSize":  19,
+    "dialogMinHeight":  140,
+    "dialogPadding":    18,
+    "dialogBottom":     10,
+    "charMainFontSize": 44,
+    "charJpFontSize":   20,
+    "charSubFontSize":  12
+  }
+}
