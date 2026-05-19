@@ -2204,7 +2204,11 @@ var G={ch1:[],ch2:[],ch3:[],ch4:[],ch5:[],extraChapters:{},jacks:[],calls:[],
           chMainFont:44,chJpFont:20,chSubFont:12}};
 
 function loadGameData(){
-  try{var r=localStorage.getItem(LS_KEY);if(r)G=JSON.parse(r);}catch(e){}
+  try{
+    var r=localStorage.getItem(LS_KEY);
+    if(r)G=JSON.parse(r);
+    else if(window.__BAKED_STORY__)G=JSON.parse(JSON.stringify(window.__BAKED_STORY__));
+  }catch(e){}
   /* 舊版資料可能缺少某些欄位 → 補預設值 */
   if(!G.map)       G.map={promptText:'',buttonText:'繼續前往'};
   if(!G.hintShop)  G.hintShop={hintText:'',payBtnText:'以照片購買'};
@@ -6753,7 +6757,7 @@ function devReimportAssets(){
   }catch(e){location.reload();}
 }
 
-function init(){
+function _initCore(){
   loadGameData();
   applyAppear();
   _applyDevVisibility();
@@ -6789,6 +6793,20 @@ function init(){
       clearTimeout(_imgTimer);clearTimeout(_safetyTimer);_startGame();
     });
   });
+}
+/* 先抓 assets/story.json（後台匯出的劇情，已隨 GitHub 一起上傳，所有人都看得到）。
+   有本地存檔（玩家自己存過）就尊重本地；抓不到就退回內建預設章節。 */
+function init(){
+  var hasLocal=false;
+  try{hasLocal=!!localStorage.getItem(LS_KEY);}catch(e){}
+  if(hasLocal){_initCore();return;}
+  var done=false,go=function(){if(done)return;done=true;_initCore();};
+  setTimeout(go,3000); /* story.json 抓太久也不卡畫面 */
+  fetch('assets/story.json',{cache:'no-store'})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(j){if(j&&typeof j==='object')window.__BAKED_STORY__=j;})
+    .catch(function(){})
+    .then(go);
 }
 init();
 </script>
