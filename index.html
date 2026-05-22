@@ -1191,7 +1191,7 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
   border:1px solid var(--brick-dark);border-radius:2px;
   background-size:cover;background-position:center;
   box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 0 0 1px rgba(232,220,196,.08);
-  transition:transform .15s;}
+  transition:transform .15s;cursor:pointer;}
 .kl-block:hover{transform:scale(1.03);}
 /* 空格（華容道的「滑動空位」） */
 .kl-block.kl-empty{
@@ -5264,58 +5264,103 @@ if(!window._dwKeysBound){
    - 按下 → 跳出確認視窗「是否真的已經解開？」
    - 玩家按「是」 → 黑屏 + run() 接劇情
    - 圖片從 IndexedDB 載入，key 為 klotski-1 ... klotski-8（admin 上傳） */
-function stageKlotski(){
-  document.getElementById('stage-klotski').classList.add('on');
-  document.getElementById('inv-bar').style.display='none';
-  document.getElementById('kl-confirm').classList.remove('on');
-  hideDialog();
-  var data=G.klotski||{};
-  var warnEl=document.getElementById('kl-warning');
-  if(warnEl)warnEl.textContent=data.warningText||'注意！僅有一次通關機會，請解完所有方塊後再進行下一步！';
-  var doneEl=document.getElementById('kl-done-btn');
-  if(doneEl)doneEl.textContent=data.doneButtonText||'我已經完成了......嗎？';
-  /* 預設空格位置（admin 可設 G.klotski.emptyIndex，1~9；預設 9 = 右下） */
-  var emptyIdx=Number(data.emptyIndex)||9;
-  /* 渲染 9 格：1~9 號，emptyIdx 那格不放圖（標 kl-empty）；其他依 klotski-N 載入 */
+/* ══ 華容道：可滑動的 3×3 拼圖。滑回完整圖案 → 自動接劇情 ══
+   8 塊圖 key = klotski-1 … klotski-8（由火車徽章切成九宮格，右下為空格）。
+   位置 index 0~8（row-major）；完成狀態＝位置 p 放第 p+1 塊、最後一格空。 */
+var klState=null;
+function _klNeighbors(i){
+  var r=Math.floor(i/3),c=i%3,n=[];
+  if(r>0)n.push(i-3); if(r<2)n.push(i+3);
+  if(c>0)n.push(i-1); if(c<2)n.push(i+1);
+  return n;
+}
+function _klSolved(){
+  for(var p=0;p<8;p++){if(klState.tiles[p]!==p+1)return false;}
+  return klState.tiles[8]===0;
+}
+function _klRender(){
   var blocks=document.querySelectorAll('#kl-grid .kl-block');
   for(var i=0;i<9;i++){
-    var pos=i+1;
     var b=blocks[i];if(!b)continue;
-    b.style.backgroundImage='';
-    b.classList.remove('kl-empty');
-    if(pos===emptyIdx){
-      b.classList.add('kl-empty');
+    var t=klState.tiles[i];
+    if(t===0){
+      b.classList.add('kl-empty');b.style.backgroundImage='';
     }else{
-      (function(idx,el){
-        if(typeof assetURLOrPath==='function'){
-          assetURLOrPath('klotski-'+idx,'',function(url){
-            if(url)el.style.backgroundImage='url("'+url+'")';
-          });
-        }
-      })(pos,b);
+      b.classList.remove('kl-empty');
+      var u=klState.urls[t];
+      b.style.backgroundImage=u?('url("'+u+'")'):'';
     }
   }
 }
-function klotskiAsk(){
-  document.getElementById('kl-confirm').classList.add('on');
+function _klClick(i){
+  if(!klState||klState.locked)return;
+  var e=klState.empty;
+  if(_klNeighbors(e).indexOf(i)<0)return;   /* 不相鄰，不能滑 */
+  klState.tiles[e]=klState.tiles[i];
+  klState.tiles[i]=0;
+  klState.empty=i;
+  _klRender();
+  if(_klSolved()){
+    klState.locked=true;
+    setTimeout(_klSolvedDone,560);
+  }
 }
-function klotskiCancel(){
-  document.getElementById('kl-confirm').classList.remove('on');
-}
-function klotskiConfirm(){
-  document.getElementById('kl-confirm').classList.remove('on');
-  /* 黑屏一下再接續主腳本 */
+function _klSolvedDone(){
   var bo=document.getElementById('blackout');
-  bo.classList.remove('theend');
-  bo.classList.add('on');
+  bo.classList.remove('theend');bo.classList.add('on');
   setTimeout(function(){
     document.getElementById('stage-klotski').classList.remove('on');
-    setTimeout(function(){
-      bo.classList.remove('on');
-      run();
-    },800);
+    setTimeout(function(){bo.classList.remove('on');run();},800);
   },1000);
 }
+function _klShuffleAndStart(){
+  klState.tiles=[1,2,3,4,5,6,7,8,0];klState.empty=8;
+  var last=-1;
+  for(var s=0;s<140;s++){
+    var nb=_klNeighbors(klState.empty).filter(function(x){return x!==last;});
+    var pick=nb[Math.floor(Math.random()*nb.length)];
+    last=klState.empty;
+    klState.tiles[klState.empty]=klState.tiles[pick];
+    klState.tiles[pick]=0;
+    klState.empty=pick;
+  }
+  if(_klSolved()){_klShuffleAndStart();return;}   /* 萬一洗回完成，重洗 */
+  klState.locked=false;
+  _klRender();
+}
+function stageKlotski(){
+  document.getElementById('stage-klotski').classList.add('on');
+  document.getElementById('inv-bar').style.display='none';
+  var cf=document.getElementById('kl-confirm');if(cf)cf.classList.remove('on');
+  var doneEl=document.getElementById('kl-done-btn');if(doneEl)doneEl.style.display='none';
+  hideDialog();
+  var data=G.klotski||{};
+  var warnEl=document.getElementById('kl-warning');
+  if(warnEl)warnEl.textContent=data.slideHint||'滑動圖塊，把圖案拼回完整。';
+  /* 點擊綁定（每格只綁一次） */
+  var blocks=document.querySelectorAll('#kl-grid .kl-block');
+  for(var i=0;i<9;i++){
+    (function(idx,b){
+      if(b&&!b._klBound){b._klBound=true;b.addEventListener('click',function(){_klClick(idx);});}
+    })(i,blocks[i]);
+  }
+  /* 載入 8 塊圖，全部到齊後洗牌開始 */
+  var urls={},pending=8;
+  klState={tiles:[1,2,3,4,5,6,7,8,0],empty:8,urls:urls,locked:true};
+  _klRender();
+  for(var n=1;n<=8;n++){
+    (function(num){
+      assetURLOrPath('klotski-'+num,'',function(url){
+        urls[num]=url;
+        if(--pending===0)_klShuffleAndStart();
+      });
+    })(n);
+  }
+}
+/* 舊版按鈕相容（已改為可滑動拼圖，這些不再使用） */
+function klotskiAsk(){}
+function klotskiCancel(){}
+function klotskiConfirm(){}
 
 /* ══ Phylock stage（電磁鎖：密碼輸入 → ESP32 解實體鎖 + 線上劇情前進） ══
    一個密碼解兩個鎖：

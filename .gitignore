@@ -1,0 +1,6 @@
+# 超大原始音檔備份（單檔 >100MB，GitHub 不接受，且不需上線）
+_未使用/
+
+# 打包產物（GitHub Pages 用多檔版本即可，單檔版自行保留本機）
+index-bundle.html
+admin-bundle.html
