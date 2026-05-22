@@ -2125,6 +2125,10 @@ var BOOTSTRAP=[
 /* 第四關拼圖：25 塊（puzzle-1 ～ puzzle-25）+ 拼圖背面合照 */
 (function(){for(var __i=1;__i<=25;__i++)BOOTSTRAP.push({key:'puzzle-'+__i,path:'assets/images/puzzle-'+__i+'.jpg'});})();
 BOOTSTRAP.push({key:'puzzle-back-photo',path:'assets/images/puzzle-back-photo.jpg'});
+/* 華容道：8 塊圖（中間格留空，圖按位置 1~8 對應） */
+(function(){for(var __i=1;__i<=8;__i++)BOOTSTRAP.push({key:'klotski-'+__i,path:'assets/images/klotski-'+__i+'.png'});})();
+/* 拍照辨識：最終照片參考圖 */
+BOOTSTRAP.push({key:'photo-final-ref',path:'assets/images/photo-final-ref.jpg'});
 function bootstrapAssets(cb){
   /* 把固定資源 + G.customAudio + G.customImages 全部納入 bootstrap，
      並嘗試多種副檔名（音訊 mp3/wav/ogg／圖片 png/jpg/jpeg/webp）。
@@ -4842,6 +4846,31 @@ function brickmoldWin(){
     run();
   },3150);
 }
+/* 把所有殘留的拖曳分身（飛行中的 clone）強制清掉，並重置 dragEl／高亮。
+   觸控被打斷（捲動、系統手勢、雙指）時舊版會把分身卡在畫面上 — 改成只要任何
+   touchcancel／visibility 切換／點鍵盤離開焦點都呼叫這個。 */
+function _bmForceClearDrag(){
+  /* 刪掉所有殘留在 body 上的 brickmold 拖曳元素（class 含 bm-，且 .flying） */
+  var ghosts=document.querySelectorAll('body > .flying');
+  for(var i=0;i<ghosts.length;i++){
+    var g=ghosts[i];
+    if(g.className&&(''+g.className).indexOf('bm-')>=0){
+      try{g.parentNode.removeChild(g);}catch(e){}
+    }
+  }
+  brickmoldState.dragEl=null;
+  brickmoldState.dragKind='';
+  brickmoldState.dragId='';
+  ['bm-z-clay','bm-z-mold','bm-z-bench'].forEach(function(zid){
+    var z=document.getElementById(zid);if(z)z.classList.remove('target');
+  });
+  var indent=document.getElementById('bm-indent');
+  if(indent)indent.classList.remove('hover');
+  /* 重新渲染區塊 → 工具會回到正確位置 */
+  if(brickmoldState.active){
+    try{_bmRenderClayZone();_bmRenderMoldZone();_bmRenderBenchZone();_bmRenderTray();}catch(e){}
+  }
+}
 if(!window._bmDocBound){
   window._bmDocBound=true;
   document.addEventListener('mousemove',function(ev){
@@ -4858,8 +4887,19 @@ if(!window._bmDocBound){
   document.addEventListener('touchend',function(ev){
     if(!brickmoldState.dragEl)return;
     var t=ev.changedTouches&&ev.changedTouches[0];
-    if(t)_bmEndDrag(t.clientX,t.clientY);
+    if(t)_bmEndDrag(t.clientX,t.clientY); else _bmForceClearDrag();
   });
+  /* iPad 上系統手勢／雙指捲動會打斷觸控 → 把卡住的分身清掉 */
+  document.addEventListener('touchcancel',function(){_bmForceClearDrag();},{passive:true});
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden)_bmForceClearDrag();
+  });
+  /* 防呆：點背景空白處（不是工具／磚）也清掉殘留 */
+  document.addEventListener('click',function(ev){
+    if(!brickmoldState.active)return;
+    /* 若 dragEl 已不在 body 上但 state 還記著 → 殘留，清掉 */
+    if(brickmoldState.dragEl&&brickmoldState.dragEl.parentNode!==document.body)_bmForceClearDrag();
+  },true);
 }
 
 /* ══ Dreamwalk stage（夢境探索：外圖 3 區 → 進入區內小棋盤撿紙條 + 生命值） ══
@@ -5269,8 +5309,9 @@ if(!window._dwKeysBound){
    - 玩家按「是」 → 黑屏 + run() 接劇情
    - 圖片從 IndexedDB 載入，key 為 klotski-1 ... klotski-8（admin 上傳） */
 /* ══ 華容道：可滑動的 3×3 拼圖。滑回完整圖案 → 自動接劇情 ══
-   8 塊圖 key = klotski-1 … klotski-8（由火車徽章切成九宮格，右下為空格）。
-   位置 index 0~8（row-major）；完成狀態＝位置 p 放第 p+1 塊、最後一格空。 */
+   8 塊圖 key = klotski-1 … klotski-8（由火車徽章切成九宮格，中間格留空）。
+   位置 index 0~8（row-major）；emptyHome = G.klotski.emptyIndex - 1（預設 4=中間）。
+   完成狀態：emptyHome 放 0，前面的位置 i 放第 i+1 塊、後面的位置 i 放第 i 塊。 */
 var klState=null;
 function _klNeighbors(i){
   var r=Math.floor(i/3),c=i%3,n=[];
@@ -5278,9 +5319,13 @@ function _klNeighbors(i){
   if(c>0)n.push(i-1); if(c<2)n.push(i+1);
   return n;
 }
+function _klSolvedTile(i){
+  var ei=klState.emptyHome;
+  return (i===ei)?0:(i<ei?i+1:i);
+}
 function _klSolved(){
-  for(var p=0;p<8;p++){if(klState.tiles[p]!==p+1)return false;}
-  return klState.tiles[8]===0;
+  for(var i=0;i<9;i++){if(klState.tiles[i]!==_klSolvedTile(i))return false;}
+  return true;
 }
 function _klRender(){
   var blocks=document.querySelectorAll('#kl-grid .kl-block');
@@ -5318,7 +5363,9 @@ function _klSolvedDone(){
   },1000);
 }
 function _klShuffleAndStart(){
-  klState.tiles=[1,2,3,4,5,6,7,8,0];klState.empty=8;
+  klState.tiles=[];
+  for(var i=0;i<9;i++)klState.tiles.push(_klSolvedTile(i));
+  klState.empty=klState.emptyHome;
   var last=-1;
   for(var s=0;s<140;s++){
     var nb=_klNeighbors(klState.empty).filter(function(x){return x!==last;});
@@ -5340,7 +5387,9 @@ function stageKlotski(){
   hideDialog();
   var data=G.klotski||{};
   var warnEl=document.getElementById('kl-warning');
-  if(warnEl)warnEl.textContent=data.slideHint||'滑動圖塊，把圖案拼回完整。';
+  if(warnEl)warnEl.textContent=data.slideHint||'滑動圖塊，把圖案拼回完整（中間缺一塊）。';
+  /* emptyHome：G.klotski.emptyIndex（1~9）對應 0-indexed；預設 5 = 中間 */
+  var ei=(Number(data.emptyIndex)||5)-1; if(ei<0)ei=0; if(ei>8)ei=8;
   /* 點擊綁定（每格只綁一次） */
   var blocks=document.querySelectorAll('#kl-grid .kl-block');
   for(var i=0;i<9;i++){
@@ -5350,7 +5399,8 @@ function stageKlotski(){
   }
   /* 載入 8 塊圖，全部到齊後洗牌開始 */
   var urls={},pending=8;
-  klState={tiles:[1,2,3,4,5,6,7,8,0],empty:8,urls:urls,locked:true};
+  klState={tiles:[],empty:ei,emptyHome:ei,urls:urls,locked:true};
+  for(var k=0;k<9;k++)klState.tiles.push(_klSolvedTile(k));
   _klRender();
   for(var n=1;n<=8;n++){
     (function(num){

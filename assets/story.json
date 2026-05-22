@@ -1747,7 +1747,8 @@
   "klotski": {
     "warningText": "注意！僅有一次通關機會，請解完所有方塊後再進行下一步！",
     "doneButtonText": "我已經完成了......嗎？",
-    "emptyIndex": 9
+    "emptyIndex": 5,
+    "slideHint": "滑動圖塊，把火車徽章拼回完整（中間缺一塊）。"
   },
   "customImages": [],
   "levels": [
