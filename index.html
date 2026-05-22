@@ -881,10 +881,12 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
   display:flex;align-items:center;justify-content:center;gap:0;
   pointer-events:none;}
 .bm-zone-content > *{pointer-events:auto;}
-.bm-zone-hint{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);
-  color:var(--gold-dim);opacity:.5;font-size:.74em;letter-spacing:.25em;
+.bm-zone-hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);
+  color:#fff0cf;opacity:1;font-size:.92em;letter-spacing:.1em;font-weight:700;
   font-family:'Shippori Mincho','Noto Serif TC',serif;
-  pointer-events:none;text-align:center;white-space:nowrap;}
+  pointer-events:none;text-align:center;white-space:normal;max-width:92%;line-height:1.5;
+  background:rgba(22,13,6,.86);padding:5px 14px;border-radius:14px;
+  border:1px solid rgba(232,180,90,.55);box-shadow:0 2px 9px rgba(0,0,0,.6);}
 
 #bm-z-clay{flex:1;}
 #bm-z-mold{flex:1;}
@@ -4412,19 +4414,20 @@ function _bmRenderClayZone(){
   if(s.clayReady){
     html='<div class="bm-clay-block" data-kind="clay"></div>';
     progTxt='黏土完成';
-    hintTxt='可拖到印花區';
+    hintTxt='黏土做好了 → 拖到「印花區」';
   }else if(s.clayHasWater){
     html='<div class="bm-dirt-mound lvl3 muddy"></div>';
     progTxt='和水中…';
+    hintTxt='和水中…請稍候';
   }else if(s.clayDig>=s.digNeed){
     html='<div class="bm-dirt-mound lvl3"></div>';
     progTxt='土 '+s.clayDig+'／'+s.digNeed;
-    hintTxt='已挖到土，再加水';
+    hintTxt='土挖夠了 → 把「水盤」拖到土堆上加水';
   }else{
     var lvl='lvl'+s.clayDig;
     html='<div class="bm-dirt-mound '+lvl+'"></div>';
     progTxt='土 '+s.clayDig+'／'+s.digNeed;
-    hintTxt=s.clayDig===0?'這裡是土堆':'再挖幾下…';
+    hintTxt='步驟①　把「鏟子」拖到土堆上挖土（挖'+s.digNeed+'下）';
   }
   content.innerHTML=html;
   if(prog)prog.textContent=progTxt;
@@ -4447,20 +4450,20 @@ function _bmRenderMoldZone(){
   if(s.moldReady){
     html='<div class="bm-wood carved" data-kind="mold">'+(p?p.svg:'')+'</div>';
     progTxt='模具完成';
-    hintTxt='可拖到印花區';
+    hintTxt='模具刻好了 → 拖到「印花區」';
   }else if(s.moldCarve>0){
     var pct=Math.min(1,s.moldCarve/s.carveNeed);
     var op=0.18+0.45*pct;
     html='<div class="bm-wood designed" style="color:rgba(240,229,208,'+op.toFixed(2)+');">'
       +(p?p.svg:'')+'</div>';
     progTxt='刻 '+s.moldCarve+'／'+s.carveNeed;
-    hintTxt='繼續刻深一點';
+    hintTxt='繼續用「雕刻刀」刻（刻'+s.carveNeed+'下）';
   }else if(s.moldDesignId){
     html='<div class="bm-wood designed">'+(p?p.svg:'')+'</div>';
-    hintTxt='開始刻吧';
+    hintTxt='步驟②之二　把「雕刻刀」拖到木板上開刻';
   }else{
     html='<div class="bm-wood"></div>';
-    hintTxt='木板：先放設計圖';
+    hintTxt='步驟②　先把「設計圖」拖到木板上選紋路';
   }
   content.innerHTML=html;
   if(prog)prog.textContent=progTxt;
@@ -4483,7 +4486,7 @@ function _bmRenderBenchZone(){
     /* 已脫模成花磚：顯示融合圖案，可拖到牆 */
     html='<div class="bm-bench-tile" data-kind="tile">'+_bmComboSvg(s.benchPressedIds)+'</div>';
     progTxt='花磚完成';
-    hintTxt='把花磚拖到牆上凹痕';
+    hintTxt='花磚完成 → 拖到上方牆上的凹痕';
   }else if(s.benchHasClay){
     /* 黏土在桌上，可能正在被某個模具壓 */
     var imprintHtml=s.benchPressedIds.length
@@ -4495,25 +4498,25 @@ function _bmRenderBenchZone(){
       html+='<div class="bm-bench-mold">'+(pa?pa.svg:'')+'</div>';
       if(s.benchPress>=s.pressNeed){
         progTxt='紋路 '+s.benchPressedIds.length+'／'+s.comboNeed+' · 敲滿';
-        hintTxt='繼續木錘把它壓進去……或它差不多了';
+        hintTxt='這個紋路敲滿了，換下一個模具拖過來';
       }else if(s.benchPress>0){
         progTxt='紋路 '+s.benchPressedIds.length+'／'+s.comboNeed+' · 敲 '+s.benchPress+'／'+s.pressNeed;
-        hintTxt='繼續敲打';
+        hintTxt='繼續用「木錘」敲打（敲'+s.pressNeed+'下）';
       }else{
         progTxt='紋路 '+s.benchPressedIds.length+'／'+s.comboNeed+' · 已入模';
-        hintTxt='拖木錘來敲打';
+        hintTxt='把「木錘」拖過來敲打';
       }
     }else{
       if(s.benchPressedIds.length>=s.comboNeed){
         progTxt='紋路 '+s.benchPressedIds.length+'／'+s.comboNeed+' · 完成';
-        hintTxt='拖刮板來脫模';
+        hintTxt='步驟④　把「刮板」拖過來脫模';
       }else{
         progTxt='紋路 '+s.benchPressedIds.length+'／'+s.comboNeed;
-        hintTxt='再雕一個模具來壓';
+        hintTxt='把做好的「模具」拖過來壓（共需'+s.comboNeed+'種）';
       }
     }
   }else{
-    hintTxt='印花區：先把黏土拖進來';
+    hintTxt='步驟③　先把做好的「黏土」拖到這裡';
   }
   content.innerHTML=html;
   if(prog)prog.textContent=progTxt;

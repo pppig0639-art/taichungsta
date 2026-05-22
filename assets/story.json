@@ -1622,14 +1622,6 @@
           {
             "text": "招牌",
             "correct": false
-          },
-          {
-            "text": "灰塵",
-            "correct": false
-          },
-          {
-            "text": "紙屑",
-            "correct": false
           }
         ]
       },
@@ -1724,10 +1716,6 @@
             "correct": false
           },
           {
-            "text": "沙石",
-            "correct": false
-          },
-          {
             "text": "油桶",
             "correct": false
           },
@@ -1749,10 +1737,6 @@
           },
           {
             "text": "木板",
-            "correct": false
-          },
-          {
-            "text": "雜草",
             "correct": false
           },
           {
