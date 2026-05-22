@@ -2108,8 +2108,9 @@ var BOOTSTRAP=[
   {key:'sp-yanqi',           path:'assets/images/sp-yanqi.png'},
   {key:'stage2-ref',         path:'assets/images/stage2-ref.jpg'},
   {key:'hint-photo',         path:'assets/images/hint-photo.jpg'},
-  {key:'niche-bg',           path:'assets/images/niche-bg.jpg'},
-  {key:'bagua-hint',         path:'assets/images/bagua-hint.jpg'},
+  {key:'niche-bg',           path:'assets/images/niche-bg.png'},
+  {key:'bagua-hint',         path:'assets/images/bagua-hint.png'},
+  {key:'map',                path:'assets/images/map.jpg'},
   {key:'bagua-tg-qian',      path:'assets/images/bagua-tg-qian.png'},
   {key:'bagua-tg-dui',       path:'assets/images/bagua-tg-dui.png'},
   {key:'bagua-tg-li',        path:'assets/images/bagua-tg-li.png'},
@@ -5795,11 +5796,13 @@ function puzzleWin(){
     div.id='puzzle-win-text';div.textContent='拼圖完成';
     stage.appendChild(div);
   },800);
-  /* 2. 字樣淡出後，把整面卡翻過去顯示「背面合照」 */
+  /* 2. 字樣淡出後直接收場接劇情（不再顯示拼圖背面合照） */
   setTimeout(function(){
     var w=document.getElementById('puzzle-win-text');if(w)w.remove();
-    showPuzzleBackPhoto();
-  },2600);
+    stage.classList.remove('on');
+    document.getElementById('inv-bar').style.display='';
+    run();
+  },2200);
 }
 function showPuzzleBackPhoto(){
   var view=document.getElementById('puzzle-photo-reveal');
@@ -6250,12 +6253,10 @@ function stageHintGate(){
   /* 輸入框清空、無 placeholder */
   var inp=document.getElementById('hg-input');
   inp.value='';inp.removeAttribute('placeholder');
-  /* 燈泡：已購買過則永遠不再出現 */
-  var bulb=document.getElementById('hint-bulb');bulb.classList.remove('on');
+  /* 提示燈泡與商城整個關閉——線索改由背包裡的地圖（卷軸圖）提供 */
+  var bulb=document.getElementById('hint-bulb');
+  if(bulb){bulb.classList.remove('on');bulb.style.display='none';}
   if(_hintTimer){clearTimeout(_hintTimer);_hintTimer=null;}
-  if(_hintPurchased)return;
-  var delay=((G.stages&&G.stages.hintGate&&G.stages.hintGate.bulbDelay)||10)*1000;
-  _hintTimer=setTimeout(function(){bulb.classList.add('on');},delay);
 }
 function closeHintGate(){
   document.getElementById('stage-hint-gate').classList.remove('on');
