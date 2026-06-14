@@ -1342,7 +1342,46 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
 .dev-btn:hover{background:rgba(194,80,40,.18);border-color:var(--gold);}
 .dev-btn.danger{color:#e06060;border-color:#803030;}
 #dev-status{color:#6b2818;font-size:10px;letter-spacing:.05em;padding:0 6px;display:flex;align-items:center;}
-#dev-toggle{position:fixed;top:6px;left:6px;z-index:99998;background:rgba(6,4,2,.85);
+/* ── 劇情回顧按鈕＋面板 ── */
+#log-btn{position:fixed;top:6px;left:6px;z-index:99997;
+  width:48px;height:48px;border-radius:6px;
+  background:rgba(6,4,2,.85);border:1px solid var(--gold-dim);
+  color:var(--gold);font-size:24px;line-height:1;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Shippori Mincho','Noto Serif TC',serif;font-weight:700;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);transition:all .15s;}
+#log-btn:hover{background:rgba(194,80,40,.2);color:#fff;border-color:var(--gold);}
+#story-log{position:fixed;inset:0;display:none;z-index:99996;
+  background:rgba(0,0,0,.78);align-items:center;justify-content:center;padding:20px;}
+#story-log.on{display:flex;animation:im-fade .25s ease both;}
+.sl-frame{width:min(720px,92vw);max-height:84vh;
+  background:linear-gradient(180deg,#0d0805 0%,#1a0e08 100%);
+  border:2px solid var(--gold-dim);border-radius:6px;
+  display:flex;flex-direction:column;color:var(--text);
+  font-family:'Shippori Mincho','Noto Serif TC',serif;
+  box-shadow:0 14px 40px rgba(0,0,0,.85);}
+.sl-header{display:flex;justify-content:space-between;align-items:center;
+  padding:12px 18px;border-bottom:1px solid var(--gold-dim);}
+.sl-title{font-size:17px;letter-spacing:.4em;color:var(--gold);}
+.sl-close{background:none;border:1px solid var(--gold-dim);color:var(--gold);
+  width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:18px;line-height:1;}
+.sl-close:hover{background:rgba(194,80,40,.2);border-color:var(--gold);color:#fff;}
+.sl-body{flex:1;overflow-y:auto;padding:18px 22px;line-height:1.95;font-size:15px;}
+.sl-narr{color:#c8b89c;font-style:italic;margin:8px 0;}
+.sl-line{margin:8px 0;}
+.sl-who{display:inline-block;color:var(--gold);margin-right:10px;
+  letter-spacing:.25em;font-weight:600;}
+.sl-speed{display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  padding:12px 20px;border-top:1px solid var(--gold-dim);}
+.sl-speed > span{color:var(--gold-dim);font-size:13px;letter-spacing:.25em;margin-right:6px;}
+.sl-speed button{background:rgba(20,12,8,.6);border:1px solid var(--gold-dim);
+  color:var(--text);padding:7px 14px;cursor:pointer;border-radius:3px;
+  font-family:inherit;font-size:13px;letter-spacing:.2em;transition:all .12s;}
+.sl-speed button:hover{background:rgba(194,80,40,.2);border-color:var(--gold);color:var(--gold);}
+.sl-speed button.on{background:linear-gradient(180deg,var(--brick) 0%,var(--brick-dark) 100%);
+  border-color:var(--gold);color:#fff;}
+
+#dev-toggle{position:fixed;top:6px;left:62px;z-index:99998;background:rgba(6,4,2,.85);
   border:1px solid #6a4818;color:var(--gold);font:11px 'Shippori Mincho','Noto Serif TC',serif;
   padding:5px 10px;cursor:pointer;border-radius:2px;letter-spacing:.25em;
   pointer-events:auto;}
@@ -1553,6 +1592,26 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
 <div id="loading"><div class="spinner"></div><p>載入中…</p></div>
 
 <button id="dev-toggle" onclick="devShow()">DEV</button>
+
+<!-- 劇情回顧按鈕（左上角；玩家點開可看過去劇情 + 調自動翻頁速度） -->
+<button id="log-btn" onclick="openStoryLog()" title="劇情回顧">≡</button>
+<div id="story-log">
+  <div class="sl-frame">
+    <div class="sl-header">
+      <div class="sl-title">劇　情　回　顧</div>
+      <button class="sl-close" onclick="closeStoryLog()" aria-label="關閉">×</button>
+    </div>
+    <div class="sl-body" id="sl-body"></div>
+    <div class="sl-speed">
+      <span>自動翻頁速度：</span>
+      <button data-ms="500"  onclick="setStorySpeed(500)">0.5 秒</button>
+      <button data-ms="1000" onclick="setStorySpeed(1000)">1 秒</button>
+      <button data-ms="2000" onclick="setStorySpeed(2000)">2 秒</button>
+      <button data-ms="4000" onclick="setStorySpeed(4000)">4 秒</button>
+      <button data-ms="0"    onclick="setStorySpeed(0)">手動</button>
+    </div>
+  </div>
+</div>
 <div id="dev-bar" class="hidden">
   <button class="dev-btn" onclick="devSkip()">跳事件</button>
   <button class="dev-btn" onclick="devSkipChapter()">跳到下一章</button>
@@ -1976,7 +2035,7 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
 
 /* ══ Constants ══ */
 var LS_KEY='tcgame_data', IDB_NAME='tcgame_assets', IDB_VER=1, IDB_STORE='assets', BC_NAME='tcgame-sync';
-var DIALOG_MIN_MS = 2000; // 2 秒：點擊後至少等 2 秒才顯示「繼續」按鈕 / 允許前進
+var DIALOG_MIN_MS = 250; // 點擊間最短間隔（防雙擊誤觸）。原本 2 秒太久，自動翻頁時間改由 _storyAutoMs 控制
 
 /* ══ 內建預設資料（admin 未設定時的保底）══ */
 /* ══ 預設劇情（admin 從未開過時的保底，確保上到 GitHub Pages 也能跑）══ */
@@ -3509,6 +3568,10 @@ function buildScript(){
 
 function run(){
   if(_ptr>=SCRIPT.length){
+    /* 跳事件/跳到下一章 超過結尾時，找最後一個 end 事件來播 The End，不要卡在「故事進行中」死路 */
+    for(var i=SCRIPT.length-1;i>=0;i--){
+      if(SCRIPT[i]&&SCRIPT[i].t==='end'){processEv(SCRIPT[i]);if(typeof devUpdateStatus==='function')devUpdateStatus();return;}
+    }
     showDialog('','……（故事進行中，敬請期待）',true);
     if(typeof devUpdateStatus==='function')devUpdateStatus();
     return;
@@ -3577,6 +3640,62 @@ function showDialog(who,text,isNarr){
   _dlgTime=Date.now();
   if(_lockTimer)clearTimeout(_lockTimer);
   _lockTimer=setTimeout(function(){da.classList.remove('locked');_lockTimer=null;},DIALOG_MIN_MS);
+  /* 記錄到劇情回顧 + 排定自動翻頁 */
+  _slPush(who,text,isNarr);
+  _slArmAuto();
+}
+
+/* ══ 劇情自動翻頁 + 劇情回顧 ══ */
+var _storyAutoMs=(function(){var v=parseInt(localStorage.getItem('storyAutoMs'),10);return isNaN(v)?1000:v;})();
+var _storyHistory=[];
+var _storyAutoTimer=null;
+function _slEscape(s){return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function _slPush(who,text,isNarr){
+  if(text==null||text==='')return;
+  if((''+text).indexOf('故事進行中')>=0)return; /* 死路提示不入回顧 */
+  _storyHistory.push({who:who||'',text:String(text),narr:!!isNarr});
+  if(_storyHistory.length>500)_storyHistory.shift();
+}
+function _slArmAuto(){
+  if(_storyAutoTimer){clearTimeout(_storyAutoTimer);_storyAutoTimer=null;}
+  if(_storyAutoMs<=0)return;                      /* 0 = 手動 */
+  var sl=document.getElementById('story-log');
+  if(sl&&sl.classList.contains('on'))return;       /* 開啟回顧時暫停 */
+  _storyAutoTimer=setTimeout(function(){
+    if(!_waiting)return;
+    if(_inHintFlow)return;                         /* 鎖住頁不自動跑 */
+    if(_memState&&_memState.active){memoryAdvance();return;}
+    advance();
+  },Math.max(220,_storyAutoMs));
+}
+function openStoryLog(){
+  var body=document.getElementById('sl-body');
+  if(!_storyHistory.length){
+    body.innerHTML='<div class="sl-narr" style="opacity:.6">（還沒有劇情紀錄）</div>';
+  }else{
+    body.innerHTML=_storyHistory.map(function(h){
+      if(h.narr)return '<div class="sl-narr">'+_slEscape(h.text).replace(/\n/g,'<br>')+'</div>';
+      return '<div class="sl-line"><span class="sl-who">'+_slEscape(h.who)+'</span>'+_slEscape(h.text).replace(/\n/g,'<br>')+'</div>';
+    }).join('');
+  }
+  document.getElementById('story-log').classList.add('on');
+  setTimeout(function(){body.scrollTop=body.scrollHeight;},10);
+  document.querySelectorAll('#story-log .sl-speed button').forEach(function(b){
+    b.classList.toggle('on',parseInt(b.dataset.ms,10)===_storyAutoMs);
+  });
+  if(_storyAutoTimer){clearTimeout(_storyAutoTimer);_storyAutoTimer=null;}
+}
+function closeStoryLog(){
+  document.getElementById('story-log').classList.remove('on');
+  if(_waiting)_slArmAuto();
+}
+function setStorySpeed(ms){
+  _storyAutoMs=Number(ms)||0;
+  try{localStorage.setItem('storyAutoMs',String(_storyAutoMs));}catch(e){}
+  document.querySelectorAll('#story-log .sl-speed button').forEach(function(b){
+    b.classList.toggle('on',parseInt(b.dataset.ms,10)===_storyAutoMs);
+  });
+  if(_waiting)_slArmAuto();
 }
 function hideDialog(){document.getElementById('dialog-area').classList.remove('on','locked');}
 
