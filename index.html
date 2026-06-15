@@ -1381,6 +1381,29 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
 .sl-speed button.on{background:linear-gradient(180deg,var(--brick) 0%,var(--brick-dark) 100%);
   border-color:var(--gold);color:#fff;}
 
+/* ── 繼續上次遊戲 對話 ── */
+#continue-prompt{position:fixed;inset:0;display:none;z-index:99999;
+  background:rgba(0,0,0,.88);align-items:center;justify-content:center;padding:20px;}
+#continue-prompt.on{display:flex;animation:im-fade .25s ease both;}
+.cp-frame{min-width:300px;max-width:92vw;
+  background:linear-gradient(180deg,#0d0805 0%,#1a0e08 100%);
+  border:2px solid var(--gold);padding:28px 36px;border-radius:6px;
+  color:var(--text);font-family:'Shippori Mincho','Noto Serif TC',serif;
+  text-align:center;box-shadow:0 14px 40px rgba(0,0,0,.9);}
+.cp-title{font-size:18px;letter-spacing:.45em;color:var(--gold);
+  padding-bottom:14px;margin-bottom:20px;border-bottom:1px solid var(--gold-dim);}
+.cp-row{display:flex;justify-content:space-between;gap:32px;margin:8px 0;
+  font-size:14px;letter-spacing:.18em;}
+.cp-label{color:var(--gold-dim);}
+.cp-buttons{margin-top:24px;display:flex;gap:14px;justify-content:center;}
+.cp-buttons button{padding:10px 24px;border:1px solid var(--gold-dim);border-radius:3px;
+  font-family:inherit;font-size:13px;letter-spacing:.32em;cursor:pointer;transition:all .15s;}
+.cp-yes{background:linear-gradient(180deg,var(--brick) 0%,var(--brick-dark) 100%);
+  color:#fff;border-color:var(--gold);}
+.cp-yes:hover{background:linear-gradient(180deg,var(--brick-light) 0%,var(--brick) 100%);transform:translateY(-1px);}
+.cp-no{background:rgba(20,12,8,.6);color:var(--text);}
+.cp-no:hover{background:rgba(194,80,40,.2);color:var(--gold);border-color:var(--gold);}
+
 #dev-toggle{position:fixed;top:6px;left:62px;z-index:99998;background:rgba(6,4,2,.85);
   border:1px solid #6a4818;color:var(--gold);font:11px 'Shippori Mincho','Noto Serif TC',serif;
   padding:5px 10px;cursor:pointer;border-radius:2px;letter-spacing:.25em;
@@ -1609,6 +1632,19 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
       <button data-ms="2000" onclick="setStorySpeed(2000)">2 秒</button>
       <button data-ms="4000" onclick="setStorySpeed(4000)">4 秒</button>
       <button data-ms="0"    onclick="setStorySpeed(0)">手動</button>
+    </div>
+  </div>
+</div>
+
+<!-- 繼續上次遊戲 對話（_startGame 偵測到有效存檔時跳出） -->
+<div id="continue-prompt">
+  <div class="cp-frame">
+    <div class="cp-title">發　現　存　檔</div>
+    <div class="cp-row"><span class="cp-label">進度</span><span id="cp-chapter">—</span></div>
+    <div class="cp-row"><span class="cp-label">時間</span><span id="cp-time">—</span></div>
+    <div class="cp-buttons">
+      <button class="cp-yes" onclick="continueGame()">繼續上次</button>
+      <button class="cp-no" onclick="startFresh()">從頭開始</button>
     </div>
   </div>
 </div>
@@ -3588,6 +3624,8 @@ function processEv(ev){
   }else if(t==='line'){
     showDialog(ev.who||'',ev.text||'',false);
   }else if(t==='chapter'){
+    /* 每進入一章就自動存檔（記錄這個 chapter 事件的 index）。 */
+    _saveGame(_ptr-1, ev.main||ev.sub||ev.jp||'');
     hideDialog();showChCard(ev.jp,ev.main,ev.sub);
   }else if(t==='show'){
     showSprite(ev.id);run();
@@ -6807,6 +6845,63 @@ window.addEventListener('storage',function(e){
 
 /* ══ Init ══ */
 var _gameStarted=false;
+/* ══ 自動存檔 + 一鍵繼續 ══
+   存檔時機：每進入一個 chapter 事件。
+   存檔內容：劇情指標、道具、提示商城旗標、目前場景；下次開遊戲若有有效存檔，
+   先跳「繼續上次／從頭開始」對話。 */
+var SAVE_KEY='tcgame_save';
+var _currentScene='';
+/* 攔 setSceneDirect 追蹤目前場景 */
+(function(){
+  var orig=window.setSceneDirect;
+  window.setSceneDirect=function(scene){_currentScene=scene||'';return orig(scene);};
+})();
+function _saveGame(ptr,chapterLabel){
+  try{
+    localStorage.setItem(SAVE_KEY,JSON.stringify({
+      ptr:ptr|0,
+      inv:JSON.parse(JSON.stringify(_inv||[])),
+      hintPurchased:!!_hintPurchased,
+      ts:Date.now(),
+      chapter:chapterLabel||'',
+      scene:_currentScene||''
+    }));
+  }catch(e){}
+}
+function _loadSave(){
+  try{var r=localStorage.getItem(SAVE_KEY);return r?JSON.parse(r):null;}catch(e){return null;}
+}
+function _clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
+function _fmtSaveTime(ts){
+  if(!ts)return '';
+  var d=new Date(ts);
+  function pad(n){return n<10?('0'+n):n;}
+  return d.getFullYear()+'/'+pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function _resumeFromSave(s){
+  _ptr=s.ptr|0;
+  _inv=Array.isArray(s.inv)?s.inv.slice():[];
+  _hintPurchased=!!s.hintPurchased;
+  try{if(s.hintPurchased)localStorage.setItem(HINT_FLAG_KEY,'1');else localStorage.removeItem(HINT_FLAG_KEY);}catch(e){}
+  renderInventory();
+  if(s.scene)setSceneDirect(s.scene);
+  run();
+}
+function continueGame(){
+  document.getElementById('continue-prompt').classList.remove('on');
+  var s=_loadSave();
+  if(s)_resumeFromSave(s); else run();
+}
+function startFresh(){
+  document.getElementById('continue-prompt').classList.remove('on');
+  _clearSave();
+  _inv=[];_hintPurchased=false;
+  try{localStorage.removeItem(HINT_FLAG_KEY);}catch(e){}
+  renderInventory();
+  _ptr=0;
+  run();
+}
+
 function _startGame(){
   if(_gameStarted)return;
   _gameStarted=true;
@@ -6818,7 +6913,15 @@ function _startGame(){
   document.getElementById('game').addEventListener('touchstart',_unlock,{once:true,passive:true});
   renderInventory();
   buildScript();
-  run();
+  /* 若有有效存檔（指標位於目前腳本範圍內）→ 跳繼續對話；否則從頭跑 */
+  var s=_loadSave();
+  if(s&&typeof s.ptr==='number'&&s.ptr>0&&s.ptr<SCRIPT.length){
+    document.getElementById('cp-chapter').textContent=s.chapter||'進度';
+    document.getElementById('cp-time').textContent=_fmtSaveTime(s.ts);
+    document.getElementById('continue-prompt').classList.add('on');
+  }else{
+    run();
+  }
 }
 /* ══ Dev Toolbar ══ */
 function _devEnabled(){return !(G&&G.dev&&G.dev.show===false);}
