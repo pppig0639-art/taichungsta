@@ -1625,14 +1625,6 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
       <button class="sl-close" onclick="closeStoryLog()" aria-label="關閉">×</button>
     </div>
     <div class="sl-body" id="sl-body"></div>
-    <div class="sl-speed">
-      <span>自動翻頁速度：</span>
-      <button data-ms="500"  onclick="setStorySpeed(500)">0.5 秒</button>
-      <button data-ms="1000" onclick="setStorySpeed(1000)">1 秒</button>
-      <button data-ms="2000" onclick="setStorySpeed(2000)">2 秒</button>
-      <button data-ms="4000" onclick="setStorySpeed(4000)">4 秒</button>
-      <button data-ms="0"    onclick="setStorySpeed(0)">手動</button>
-    </div>
   </div>
 </div>
 
@@ -3678,33 +3670,18 @@ function showDialog(who,text,isNarr){
   _dlgTime=Date.now();
   if(_lockTimer)clearTimeout(_lockTimer);
   _lockTimer=setTimeout(function(){da.classList.remove('locked');_lockTimer=null;},DIALOG_MIN_MS);
-  /* 記錄到劇情回顧 + 排定自動翻頁 */
+  /* 記錄到劇情回顧（純歷史查看，不自動翻頁） */
   _slPush(who,text,isNarr);
-  _slArmAuto();
 }
 
-/* ══ 劇情自動翻頁 + 劇情回顧 ══ */
-var _storyAutoMs=(function(){var v=parseInt(localStorage.getItem('storyAutoMs'),10);return isNaN(v)?1000:v;})();
+/* ══ 劇情回顧（純歷史查看；點擊翻頁靠玩家自己點對話框） ══ */
 var _storyHistory=[];
-var _storyAutoTimer=null;
 function _slEscape(s){return String(s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function _slPush(who,text,isNarr){
   if(text==null||text==='')return;
   if((''+text).indexOf('故事進行中')>=0)return; /* 死路提示不入回顧 */
   _storyHistory.push({who:who||'',text:String(text),narr:!!isNarr});
   if(_storyHistory.length>500)_storyHistory.shift();
-}
-function _slArmAuto(){
-  if(_storyAutoTimer){clearTimeout(_storyAutoTimer);_storyAutoTimer=null;}
-  if(_storyAutoMs<=0)return;                      /* 0 = 手動 */
-  var sl=document.getElementById('story-log');
-  if(sl&&sl.classList.contains('on'))return;       /* 開啟回顧時暫停 */
-  _storyAutoTimer=setTimeout(function(){
-    if(!_waiting)return;
-    if(_inHintFlow)return;                         /* 鎖住頁不自動跑 */
-    if(_memState&&_memState.active){memoryAdvance();return;}
-    advance();
-  },Math.max(220,_storyAutoMs));
 }
 function openStoryLog(){
   var body=document.getElementById('sl-body');
@@ -3718,23 +3695,8 @@ function openStoryLog(){
   }
   document.getElementById('story-log').classList.add('on');
   setTimeout(function(){body.scrollTop=body.scrollHeight;},10);
-  document.querySelectorAll('#story-log .sl-speed button').forEach(function(b){
-    b.classList.toggle('on',parseInt(b.dataset.ms,10)===_storyAutoMs);
-  });
-  if(_storyAutoTimer){clearTimeout(_storyAutoTimer);_storyAutoTimer=null;}
 }
-function closeStoryLog(){
-  document.getElementById('story-log').classList.remove('on');
-  if(_waiting)_slArmAuto();
-}
-function setStorySpeed(ms){
-  _storyAutoMs=Number(ms)||0;
-  try{localStorage.setItem('storyAutoMs',String(_storyAutoMs));}catch(e){}
-  document.querySelectorAll('#story-log .sl-speed button').forEach(function(b){
-    b.classList.toggle('on',parseInt(b.dataset.ms,10)===_storyAutoMs);
-  });
-  if(_waiting)_slArmAuto();
-}
+function closeStoryLog(){document.getElementById('story-log').classList.remove('on');}
 function hideDialog(){document.getElementById('dialog-area').classList.remove('on','locked');}
 
 function advance(){
