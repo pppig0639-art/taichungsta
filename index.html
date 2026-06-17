@@ -5656,7 +5656,7 @@ function stageKlotski(){
   hideDialog();
   var data=G.klotski||{};
   var warnEl=document.getElementById('kl-warning');
-  if(warnEl)warnEl.textContent=data.slideHint||'滑動圖塊，把圖案拼回完整（中間缺一塊）。';
+  if(warnEl)warnEl.textContent=data.slideHint||'滑動圖塊，把圖案拼回完整。';
   /* emptyHome：G.klotski.emptyIndex（1~9）對應 0-indexed；預設 5 = 中間 */
   var ei=(Number(data.emptyIndex)||5)-1; if(ei<0)ei=0; if(ei>8)ei=8;
   /* 拖曳綁定（每格只綁一次，使用 pointer events 支援滑鼠＋觸控）。
