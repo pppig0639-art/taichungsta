@@ -375,6 +375,14 @@ audio{height:28px;flex:1;min-width:120px;}
       <div id="kl-blocks-grid"></div>
     </div>
     <div class="sec mt16">
+      <div class="sec-title">華容道提示圖（玩家可看的完整參考圖）</div>
+      <p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:10px;">
+        上傳一張完整參考圖。玩家在華容道右上角按 💡 就會看到，
+        通常放原始未拆解的火車徽章照片。key：<code>klotski-hint</code>
+      </p>
+      <div id="kl-hint-area"></div>
+    </div>
+    <div class="sec mt16">
       <div class="sec-title">拍照辨識（終局 photo-final）</div>
       <p class="dim" style="font-size:11px;line-height:1.6;margin-bottom:10px;">
         玩家在現實打開華容道盒，拿出辨識物，需要拍照比對才能進入下一段劇情。上傳「正確答案」的參考圖。
@@ -1827,6 +1835,48 @@ function renderEndgame(){
     +'</div>'
     +'</div>';
   _pfLoadRefPreview();
+  /* 華容道提示圖（klotski-hint） */
+  var khArea=document.getElementById('kl-hint-area');
+  if(khArea){
+    khArea.innerHTML=
+      '<div style="display:flex;align-items:center;gap:12px;">'
+      +'<div id="kl-hint-prev" style="width:160px;height:120px;background:#1a0e08;border:1px solid var(--brick-dark);border-radius:2px;background-size:cover;background-position:center;"></div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px;">'
+      +'<input type="file" accept="image/*" onchange="_klUploadHint(this)">'
+      +'<button class="btn btn-d btn-sm" onclick="_klDelHint()" style="font-size:11px;">移除提示圖</button>'
+      +'</div>'
+      +'</div>';
+    _klLoadHintPreview();
+  }
+}
+function _klUploadHint(input){
+  var f=input.files&&input.files[0];if(!f)return;
+  saveAsset('klotski-hint',f,function(ok){
+    if(!ok){note('klotski-hint 儲存失敗');return;}
+    if(!Array.isArray(G.customImages))G.customImages=[];
+    if(!G.customImages.some(function(s){return s&&s.key==='klotski-hint';})){
+      G.customImages.push({key:'klotski-hint',name:'華容道提示圖'});
+    }
+    dirty();
+    _klLoadHintPreview();
+    note('已存 klotski-hint');
+  });
+}
+function _klDelHint(){
+  deleteAsset('klotski-hint',function(){
+    if(Array.isArray(G.customImages)){
+      G.customImages=G.customImages.filter(function(s){return !s||s.key!=='klotski-hint';});
+    }
+    dirty();
+    _klLoadHintPreview();
+  });
+}
+function _klLoadHintPreview(){
+  var el=document.getElementById('kl-hint-prev');if(!el)return;
+  loadAsset('klotski-hint',function(blob){
+    if(blob){var u=URL.createObjectURL(blob);el.style.backgroundImage='url('+u+')';}
+    else{el.style.backgroundImage='';}
+  });
 }
 function _kdSaveText(field,val){
   if(!G.klotski)G.klotski={};

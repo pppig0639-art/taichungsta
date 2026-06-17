@@ -369,6 +369,14 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
    只負責顯示「我已到達，繼續」按鈕，10 秒後自動跳出，玩家必須點才前進。 ── */
 #stage-niche{position:absolute;inset:0;display:none;z-index:74;pointer-events:none;background:transparent;}
 #stage-niche.on{display:block;pointer-events:auto;}
+#niche-flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;}
+#stage-niche.on #niche-flash{animation:niche-flash 4s ease-in-out both;}
+@keyframes niche-flash{
+  0%,9%,32%,41%,68%,75%,100%{opacity:0;}
+  12%{opacity:.78;}
+  35%{opacity:.62;}
+  71%{opacity:.85;}
+}
 #niche-cont{position:absolute;left:50%;bottom:14%;transform:translateX(-50%);
   padding:14px 44px;background:rgba(10,7,4,.78);border:1px solid var(--gold);
   color:#fff;font-family:'Shippori Mincho','Noto Serif TC',serif;
@@ -1193,8 +1201,10 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
   border:1px solid var(--brick-dark);border-radius:2px;
   background-size:cover;background-position:center;
   box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 0 0 1px rgba(232,220,196,.08);
-  transition:transform .15s;cursor:pointer;}
+  transition:transform .15s;cursor:grab;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
 .kl-block:hover{transform:scale(1.03);}
+.kl-block.kl-grab{cursor:grabbing;opacity:.95;transform:scale(.97);}
 /* 空格（華容道的「滑動空位」） */
 .kl-block.kl-empty{
   background:repeating-linear-gradient(45deg,
@@ -1232,6 +1242,53 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
 .kl-cf-yes:hover{background:linear-gradient(180deg,var(--brick-light) 0%,var(--brick) 100%);}
 .kl-cf-no{background:#dcc8a8;color:#3a1f10;}
 .kl-cf-no:hover{background:#c8b89c;}
+
+/* 跳過此關（鎖頭按鈕 + 密碼 + 確認） */
+#kl-skip-btn{position:absolute;top:14px;left:14px;width:44px;height:44px;border-radius:6px;
+  background:rgba(20,12,8,.85);border:1px solid var(--gold-dim);color:var(--gold);
+  font-size:22px;line-height:1;cursor:pointer;z-index:6;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);}
+#kl-skip-btn:hover{background:rgba(194,80,40,.2);color:#fff;border-color:var(--gold);}
+/* 右上角提示按鈕（顯示後台上傳的 klotski-hint） */
+#kl-hint-btn{position:absolute;top:14px;right:14px;width:44px;height:44px;border-radius:50%;
+  background:rgba(20,12,8,.85);border:1px solid var(--gold-dim);color:var(--gold);
+  font-size:22px;line-height:1;cursor:pointer;z-index:6;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.5);}
+#kl-hint-btn:hover{background:rgba(194,80,40,.2);color:#fff;border-color:var(--gold);}
+#kl-hint-view{position:absolute;inset:0;display:none;z-index:8;
+  background:rgba(8,4,2,.88);align-items:center;justify-content:center;padding:5%;flex-direction:column;}
+#kl-hint-view.on{display:flex;animation:im-fade .25s ease both;}
+#kl-hint-img{max-width:90%;max-height:80%;object-fit:contain;border:1px solid var(--gold-dim);background:#0a0604;}
+#kl-hint-empty{color:var(--gold-dim);letter-spacing:.4em;font-size:14px;
+  font-family:'Shippori Mincho','Noto Serif TC',serif;display:none;}
+#kl-hint-view.empty #kl-hint-img{display:none;}
+#kl-hint-view.empty #kl-hint-empty{display:block;}
+#kl-skip-modal,#kl-skip-confirm{position:absolute;inset:0;display:none;z-index:8;
+  background:rgba(8,4,2,.8);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;}
+#kl-skip-modal.on,#kl-skip-confirm.on{display:flex;animation:im-fade .25s ease both;}
+.kl-sk-frame{padding:28px 36px;min-width:280px;
+  background:linear-gradient(180deg,#f5ead4 0%,#dcc8a8 100%);
+  border:4px double var(--brick-dark);box-shadow:0 14px 40px rgba(0,0,0,.85);
+  color:#1a0a04;text-align:center;font-family:'Shippori Mincho','Noto Serif TC',serif;}
+.kl-sk-title{font-size:1.15em;letter-spacing:.4em;font-weight:700;
+  color:var(--brick-dark);margin-bottom:18px;padding-bottom:12px;
+  border-bottom:2px solid var(--brick-dark);}
+#kl-sk-input{display:block;width:140px;margin:0 auto 6px;padding:10px;
+  font-size:22px;text-align:center;letter-spacing:.6em;
+  background:rgba(0,0,0,.06);border:1px solid var(--brick-dark);border-radius:3px;
+  color:#1a0a04;font-family:'Shippori Mincho','Noto Serif TC',serif;}
+#kl-sk-input:focus{outline:none;border-color:var(--brick);box-shadow:0 0 6px rgba(194,80,40,.45);}
+.kl-sk-msg{font-size:13px;color:#a03020;letter-spacing:.2em;min-height:18px;margin-bottom:12px;}
+.kl-sk-buttons{display:flex;gap:14px;justify-content:center;margin-top:14px;}
+.kl-sk-yes,.kl-sk-no{padding:9px 28px;border-radius:2px;border:2px solid var(--brick-dark);
+  font-family:inherit;font-size:13px;letter-spacing:.4em;font-weight:700;cursor:pointer;}
+.kl-sk-yes{background:linear-gradient(180deg,var(--brick) 0%,var(--brick-dark) 100%);color:var(--stone);}
+.kl-sk-yes:hover{background:linear-gradient(180deg,var(--brick-light) 0%,var(--brick) 100%);}
+.kl-sk-no{background:#dcc8a8;color:#3a1f10;}
+.kl-sk-no:hover{background:#c8b89c;}
 
 #stage-phylock{position:absolute;inset:0;display:none;z-index:78;
   background:radial-gradient(ellipse at 50% 30%,#1a1208 0%,#000 80%);
@@ -1867,6 +1924,35 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
 
   <!-- 華容道：3×3 九宮格，8 塊圖 + 1 空格（玩家視覺上看到的「滑動拼圖」） -->
   <div id="stage-klotski">
+    <!-- 左上角：上鎖的「跳過此關」按鈕；輸入 0000 並確認後直接接劇情 -->
+    <button id="kl-skip-btn" onclick="openKlSkip()" title="跳過此關">🔒</button>
+    <!-- 右上角：提示按鈕，顯示後台上傳的 klotski-hint 參考圖 -->
+    <button id="kl-hint-btn" onclick="openKlHint()" title="提示">💡</button>
+    <div id="kl-hint-view" onclick="closeKlHint(event)">
+      <img id="kl-hint-img" src="" alt="">
+      <div id="kl-hint-empty">（尚未上傳提示圖）</div>
+    </div>
+    <div id="kl-skip-modal">
+      <div class="kl-sk-frame">
+        <div class="kl-sk-title">輸入密碼以跳過</div>
+        <input id="kl-sk-input" type="password" inputmode="numeric" maxlength="4"
+               autocomplete="off" onkeydown="klSkipKey(event)">
+        <div class="kl-sk-msg" id="kl-sk-msg"></div>
+        <div class="kl-sk-buttons">
+          <button class="kl-sk-no" onclick="closeKlSkip()">取消</button>
+          <button class="kl-sk-yes" onclick="submitKlSkip()">確認</button>
+        </div>
+      </div>
+    </div>
+    <div id="kl-skip-confirm">
+      <div class="kl-sk-frame">
+        <div class="kl-sk-title">確定跳過華容道關卡？</div>
+        <div class="kl-sk-buttons">
+          <button class="kl-sk-no" onclick="closeKlSkipConfirm()">否</button>
+          <button class="kl-sk-yes" onclick="doKlSkip()">是</button>
+        </div>
+      </div>
+    </div>
     <div id="kl-warning">注意！僅有一次通關機會，請解完所有方塊後再進行下一步！</div>
     <div id="kl-grid">
       <div class="kl-block" data-idx="1"></div>
@@ -1954,8 +2040,9 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Shippor
   <!-- image 事件：全螢幕展示一張圖 -->
   <div id="image-ev"><img id="image-ev-img" src="" alt=""></div>
 
-  <!-- 壁龕覆蓋層：背景圖由 {t:'bg',scene:'niche-bg'} 控制；本層只放「我已到達，繼續」按鈕 -->
+  <!-- 壁龕覆蓋層：背景圖由 {t:'bg',scene:'niche-bg'} 控制；本層做 4 秒閃爍後自動接續 -->
   <div id="stage-niche">
+    <div id="niche-flash"></div>
     <button id="niche-cont" onclick="onNicheContinue()">我已到達，繼續</button>
   </div>
 
@@ -2216,6 +2303,8 @@ BOOTSTRAP.push({key:'puzzle-back-photo',path:'assets/images/puzzle-back-photo.jp
 (function(){for(var __i=1;__i<=8;__i++)BOOTSTRAP.push({key:'klotski-'+__i,path:'assets/images/klotski-'+__i+'.png'});})();
 /* 拍照辨識：最終照片參考圖 */
 BOOTSTRAP.push({key:'photo-final-ref',path:'assets/images/photo-final-ref.jpg'});
+/* 華容道提示圖（玩家可看的完整參考圖；後台上傳後也走 IndexedDB） */
+BOOTSTRAP.push({key:'klotski-hint',path:'assets/images/klotski-hint.jpg'});
 function bootstrapAssets(cb){
   /* 把固定資源 + G.customAudio + G.customImages 全部納入 bootstrap，
      並嘗試多種副檔名（音訊 mp3/wav/ogg／圖片 png/jpg/jpeg/webp）。
@@ -3111,6 +3200,25 @@ function _normalizeSliderItems(){
     }
     /* push 到章末 */
     G.ch2.push({t:'item',id:'slider1',name:'滑塊・一',icon:'🪨',asset:'slider1'});
+    /* 確保 niche 之前一定有 bg=niche-bg（舊存檔可能缺）。 */
+    var nicheI=-1;
+    for(var ic2b=0;ic2b<G.ch2.length;ic2b++){
+      var ev=G.ch2[ic2b];
+      if(ev&&ev.t==='stage'&&ev.id==='niche'){nicheI=ic2b;break;}
+    }
+    if(nicheI>=0){
+      /* 把 niche 前緊鄰的非 bg 事件移除舊的 niche-bg（可能在錯位置），再插一個正確位置的 */
+      for(var ic2c=G.ch2.length-1;ic2c>=0;ic2c--){
+        if(G.ch2[ic2c]&&G.ch2[ic2c].t==='bg'&&G.ch2[ic2c].scene==='niche-bg')G.ch2.splice(ic2c,1);
+      }
+      /* 重新找 niche 位置（剛剛可能位移） */
+      nicheI=-1;
+      for(var ic2d=0;ic2d<G.ch2.length;ic2d++){
+        var e2=G.ch2[ic2d];
+        if(e2&&e2.t==='stage'&&e2.id==='niche'){nicheI=ic2d;break;}
+      }
+      G.ch2.splice(nicheI,0,{t:'bg',scene:'niche-bg'});
+    }
     if(JSON.stringify(G.ch2)!==beforeC2)changed=true;
   }
   /* ch3 → slider2（強制放在章末） */
@@ -5460,10 +5568,10 @@ function _klRender(){
     }
   }
 }
-function _klClick(i){
+function _klPerformMove(i){
   if(!klState||klState.locked)return;
   var e=klState.empty;
-  if(_klNeighbors(e).indexOf(i)<0)return;   /* 不相鄰，不能滑 */
+  if(_klNeighbors(e).indexOf(i)<0)return;
   klState.tiles[e]=klState.tiles[i];
   klState.tiles[i]=0;
   klState.empty=i;
@@ -5473,6 +5581,48 @@ function _klClick(i){
     setTimeout(_klSolvedDone,560);
   }
 }
+function _klDirToEmpty(i){
+  if(!klState)return null;
+  var e=klState.empty;
+  if(_klNeighbors(e).indexOf(i)<0)return null;
+  var ir=Math.floor(i/3),ic=i%3;
+  var er=Math.floor(e/3),ec=e%3;
+  return {x:ec-ic,y:er-ir}; /* (±1,0) 水平、(0,±1) 垂直 */
+}
+function _klStartDrag(ev,i){
+  if(!klState||klState.locked)return;
+  if(klState.tiles[i]===0)return;
+  var dir=_klDirToEmpty(i);
+  if(!dir)return;
+  var pos=ev.touches?ev.touches[0]:ev;
+  klState.drag={i:i,dir:dir,sx:pos.clientX,sy:pos.clientY,done:false};
+  var b=document.querySelectorAll('#kl-grid .kl-block')[i];
+  if(b)b.classList.add('kl-grab');
+  if(ev.cancelable)ev.preventDefault();
+}
+function _klMoveDrag(ev){
+  var d=klState&&klState.drag;if(!d||d.done)return;
+  var pos=ev.touches?ev.touches[0]:ev;
+  var dx=pos.clientX-d.sx,dy=pos.clientY-d.sy;
+  var moved=d.dir.x*dx+d.dir.y*dy;
+  if(moved>=22){
+    d.done=true;
+    var b=document.querySelectorAll('#kl-grid .kl-block')[d.i];
+    if(b)b.classList.remove('kl-grab');
+    _klPerformMove(d.i);
+  }
+  if(ev.cancelable)ev.preventDefault();
+}
+function _klEndDrag(){
+  var d=klState&&klState.drag;
+  if(d){
+    var b=document.querySelectorAll('#kl-grid .kl-block')[d.i];
+    if(b)b.classList.remove('kl-grab');
+  }
+  if(klState)klState.drag=null;
+}
+/* 舊 click 介面留作 fallback（不再綁定到方塊上） */
+function _klClick(i){_klPerformMove(i);}
 function _klSolvedDone(){
   var bo=document.getElementById('blackout');
   bo.classList.remove('theend');bo.classList.add('on');
@@ -5509,12 +5659,22 @@ function stageKlotski(){
   if(warnEl)warnEl.textContent=data.slideHint||'滑動圖塊，把圖案拼回完整（中間缺一塊）。';
   /* emptyHome：G.klotski.emptyIndex（1~9）對應 0-indexed；預設 5 = 中間 */
   var ei=(Number(data.emptyIndex)||5)-1; if(ei<0)ei=0; if(ei>8)ei=8;
-  /* 點擊綁定（每格只綁一次） */
+  /* 拖曳綁定（每格只綁一次，使用 pointer events 支援滑鼠＋觸控）。
+     玩家：對準方塊往空格方向滑 → 拖過 22px 就觸發滑動。tap 不會觸發。 */
   var blocks=document.querySelectorAll('#kl-grid .kl-block');
   for(var i=0;i<9;i++){
     (function(idx,b){
-      if(b&&!b._klBound){b._klBound=true;b.addEventListener('click',function(){_klClick(idx);});}
+      if(b&&!b._klBound){
+        b._klBound=true;
+        b.addEventListener('pointerdown',function(ev){_klStartDrag(ev,idx);});
+      }
     })(i,blocks[i]);
+  }
+  if(!window._klDocBound){
+    window._klDocBound=true;
+    document.addEventListener('pointermove',function(ev){if(klState&&klState.drag)_klMoveDrag(ev);},{passive:false});
+    document.addEventListener('pointerup',function(){if(klState&&klState.drag)_klEndDrag();});
+    document.addEventListener('pointercancel',function(){if(klState&&klState.drag)_klEndDrag();});
   }
   /* 載入 8 塊圖，全部到齊後洗牌開始 */
   var urls={},pending=8;
@@ -5534,6 +5694,53 @@ function stageKlotski(){
 function klotskiAsk(){}
 function klotskiCancel(){}
 function klotskiConfirm(){}
+
+/* 提示圖（右上角 💡） */
+function openKlHint(){
+  var v=document.getElementById('kl-hint-view');
+  var img=document.getElementById('kl-hint-img');
+  assetURLOrPath('klotski-hint','assets/images/klotski-hint.jpg',function(url){
+    if(url){
+      img.src=url;v.classList.remove('empty');
+    }else{
+      img.removeAttribute('src');v.classList.add('empty');
+    }
+  });
+  v.classList.add('on');
+}
+function closeKlHint(e){
+  if(e&&e.target&&e.target.id!=='kl-hint-view'&&e.target.tagName!=='BUTTON'&&e.target.id!=='kl-hint-empty')return;
+  document.getElementById('kl-hint-view').classList.remove('on');
+}
+
+/* 跳過此關（左上角鎖頭，密碼 0000） */
+function openKlSkip(){
+  document.getElementById('kl-sk-input').value='';
+  document.getElementById('kl-sk-msg').textContent='';
+  document.getElementById('kl-skip-modal').classList.add('on');
+  setTimeout(function(){var i=document.getElementById('kl-sk-input');if(i)i.focus();},60);
+}
+function closeKlSkip(){document.getElementById('kl-skip-modal').classList.remove('on');}
+function klSkipKey(ev){if(ev.key==='Enter'){ev.preventDefault();submitKlSkip();}}
+function submitKlSkip(){
+  var v=document.getElementById('kl-sk-input').value||'';
+  if(v==='0000'){
+    document.getElementById('kl-skip-modal').classList.remove('on');
+    document.getElementById('kl-skip-confirm').classList.add('on');
+  }else{
+    document.getElementById('kl-sk-msg').textContent='密碼錯誤';
+    var inp=document.getElementById('kl-sk-input');
+    inp.classList.remove('shake');void inp.offsetWidth;inp.classList.add('shake');
+    inp.value='';
+  }
+}
+function closeKlSkipConfirm(){document.getElementById('kl-skip-confirm').classList.remove('on');}
+function doKlSkip(){
+  document.getElementById('kl-skip-confirm').classList.remove('on');
+  if(klState){klState.locked=true;klState.drag=null;}
+  /* 跟拼對成功一樣：黑屏 → 收起 stage → run() 接劇情 */
+  _klSolvedDone();
+}
 
 /* ══ Phylock stage（電磁鎖：密碼輸入 → ESP32 解實體鎖 + 線上劇情前進） ══
    一個密碼解兩個鎖：
@@ -5998,16 +6205,15 @@ var _nicheTimer=null;
 function stageNiche(){
   hideDialog();
   document.getElementById('stage-niche').classList.add('on');
+  /* 不再顯示「我已到達」按鈕；改成壁龕圖閃 4 秒後自動接續八卦關 */
   var btn=document.getElementById('niche-cont');
-  btn.classList.remove('on');
+  if(btn)btn.classList.remove('on');
   if(_nicheTimer)clearTimeout(_nicheTimer);
-  /* 後台可設定秒數：G.stages.niche.duration（秒）。預設 10 秒。 */
-  var sec=(G.stages&&G.stages.niche&&parseInt(G.stages.niche.duration))||10;
-  if(sec<1)sec=1;
   _nicheTimer=setTimeout(function(){
-    btn.classList.add('on');
+    document.getElementById('stage-niche').classList.remove('on');
     _nicheTimer=null;
-  },sec*1000);
+    run();
+  },4000);
 }
 function onNicheContinue(){
   if(_nicheTimer){clearTimeout(_nicheTimer);_nicheTimer=null;}
